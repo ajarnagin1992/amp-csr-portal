@@ -1,8 +1,9 @@
 import { screen, waitFor } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { renderWithQueryClient } from '../../test/renderWithQueryClient.js';
 import { getUsers } from '../../api/users.js';
 import { UsersList } from './UsersList.js';
-import { validUser } from '../../test/fixtures.js';
+import { pagedUsersResponse, validUser } from '../../test/fixtures.js';
 
 vi.mock('../../api/users.js', () => ({
   getUsers: vi.fn(),
@@ -14,7 +15,7 @@ describe('UsersList', () => {
 
     renderWithQueryClient(<UsersList />);
 
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/loading/i)).toBeInTheDocument();
   });
 
   it('renders a row for each user once loaded', async () => {
@@ -42,5 +43,34 @@ describe('UsersList', () => {
     renderWithQueryClient(<UsersList />);
 
     await waitFor(() => expect(screen.getByText(/failed to load users/i)).toBeInTheDocument());
+  });
+
+  it('does not show pagination controls when everything fits on one page', async () => {
+    vi.mocked(getUsers).mockResolvedValue({ data: [validUser], total: 1 });
+
+    renderWithQueryClient(<UsersList />);
+
+    await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+    expect(screen.queryByTestId('pagination')).not.toBeInTheDocument();
+  });
+
+  it('shows pagination controls when there is more than one page', async () => {
+    vi.mocked(getUsers).mockResolvedValue(pagedUsersResponse);
+
+    renderWithQueryClient(<UsersList />);
+
+    await waitFor(() => expect(screen.getByTestId('pagination')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: '3' })).toBeInTheDocument();
+  });
+
+  it('requests the next page when a page control is clicked', async () => {
+    vi.mocked(getUsers).mockResolvedValue(pagedUsersResponse);
+
+    renderWithQueryClient(<UsersList />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: '2' }));
+
+    await waitFor(() => expect(getUsers).toHaveBeenCalledWith({ page: 2, pageSize: 20 }));
   });
 });
