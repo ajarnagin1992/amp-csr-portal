@@ -196,7 +196,7 @@ function AccountInfo({ data }: { data: MobileUserDto }) {
 
   if (isEditing) {
     return (
-      <>
+      <div className="flex flex-col gap-3">
         <TextInput label="First Name" value={firstName} onChange={(e) => setFirstName(e.currentTarget.value)} />
         <TextInput label="Last Name" value={lastName} onChange={(e) => setLastName(e.currentTarget.value)} />
         <TextInput label="Email" value={email} onChange={(e) => setEmail(e.currentTarget.value)} />
@@ -210,12 +210,12 @@ function AccountInfo({ data }: { data: MobileUserDto }) {
             Cancel
           </Button>
         </Group>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
       <Table>
         <Table.Tbody>
           <Table.Tr>
@@ -260,7 +260,7 @@ function AccountInfo({ data }: { data: MobileUserDto }) {
           </Button>
         </Group>
       </Modal>
-    </>
+    </div>
   );
 }
 
@@ -272,79 +272,93 @@ export function UserProperties() {
   if (isError) return <Alert color="red">Failed to load user</Alert>;
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <Title order={2}>
         {data.firstName} {data.lastName}
       </Title>
-      <AccountInfo data={data} />
 
-      <Title order={3}>Vehicles</Title>
-      {data.vehicles.length === 0 ? (
-        <Text>No vehicles</Text>
-      ) : (
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>License Plate</Table.Th>
-              <Table.Th>State</Table.Th>
-              <Table.Th>Make</Table.Th>
-              <Table.Th>Model</Table.Th>
-              <Table.Th>Year</Table.Th>
-              <Table.Th>Plan</Table.Th>
-              <Table.Th>Subscription Status</Table.Th>
-              <Table.Th>Next Billing Date</Table.Th>
-              <Table.Th>Actions</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {data.vehicles.map((vehicle) => (
-              <Table.Tr key={vehicle.id}>
-                <Table.Td>{vehicle.licensePlate}</Table.Td>
-                <Table.Td>{vehicle.state}</Table.Td>
-                <Table.Td>{vehicle.make}</Table.Td>
-                <Table.Td>{vehicle.model}</Table.Td>
-                <Table.Td>{vehicle.year}</Table.Td>
-                <Table.Td>{vehicle.subscription?.plan.name ?? '—'}</Table.Td>
-                <Table.Td>{vehicle.subscription?.status ?? '—'}</Table.Td>
-                <Table.Td>{formatDate(vehicle.subscription?.nextBillingDate)}</Table.Td>
-                <Table.Td>
-                  <SubscriptionActions vehicle={vehicle} allVehicles={data.vehicles} />
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      )}
+      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <Title order={3} mb="sm">
+          Account
+        </Title>
+        <AccountInfo data={data} />
+      </section>
 
-      <Title order={3}>Purchase History</Title>
-      {data.purchases.length === 0 ? (
-        <Text>No purchases</Text>
-      ) : (
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Date</Table.Th>
-              <Table.Th>Vehicle</Table.Th>
-              <Table.Th>Description</Table.Th>
-              <Table.Th>Type</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th>Amount</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {data.purchases.map((purchase) => (
-              <Table.Tr key={purchase.id}>
-                <Table.Td>{formatDate(purchase.createdAt)}</Table.Td>
-                <Table.Td>{purchase.vehicle.licensePlate}</Table.Td>
-                <Table.Td>{purchase.description}</Table.Td>
-                <Table.Td>{purchase.type}</Table.Td>
-                <Table.Td>{purchase.status}</Table.Td>
-                <Table.Td>{(purchase.amount / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</Table.Td>
+      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <Title order={3} mb="sm">
+          Vehicles
+        </Title>
+        {data.vehicles.length === 0 ? (
+          <Text>No vehicles</Text>
+        ) : (
+          <Table verticalSpacing="sm">
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>License Plate</Table.Th>
+                <Table.Th>State</Table.Th>
+                <Table.Th>Make</Table.Th>
+                <Table.Th>Model</Table.Th>
+                <Table.Th>Year</Table.Th>
+                <Table.Th>Plan</Table.Th>
+                <Table.Th>Subscription Status</Table.Th>
+                <Table.Th>Next Billing Date</Table.Th>
+                <Table.Th>Actions</Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      )}
-    </>
+            </Table.Thead>
+            <Table.Tbody>
+              {data.vehicles.map((vehicle) => (
+                <Table.Tr key={vehicle.id}>
+                  <Table.Td>{vehicle.licensePlate}</Table.Td>
+                  <Table.Td>{vehicle.state}</Table.Td>
+                  <Table.Td>{vehicle.make}</Table.Td>
+                  <Table.Td>{vehicle.model}</Table.Td>
+                  <Table.Td>{vehicle.year}</Table.Td>
+                  <Table.Td>{vehicle.subscription?.plan.name ?? '—'}</Table.Td>
+                  <Table.Td>{vehicle.subscription?.status ?? '—'}</Table.Td>
+                  <Table.Td>{formatDate(vehicle.subscription?.nextBillingDate)}</Table.Td>
+                  <Table.Td>
+                    <SubscriptionActions vehicle={vehicle} allVehicles={data.vehicles} />
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        )}
+      </section>
+
+      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <Title order={3} mb="sm">
+          Purchase History
+        </Title>
+        {data.purchases.length === 0 ? (
+          <Text>No purchases</Text>
+        ) : (
+          <Table verticalSpacing="sm">
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Date</Table.Th>
+                <Table.Th>Vehicle</Table.Th>
+                <Table.Th>Description</Table.Th>
+                <Table.Th>Type</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.Th>Amount</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {data.purchases.map((purchase) => (
+                <Table.Tr key={purchase.id}>
+                  <Table.Td>{formatDate(purchase.createdAt)}</Table.Td>
+                  <Table.Td>{purchase.vehicle.licensePlate}</Table.Td>
+                  <Table.Td>{purchase.description}</Table.Td>
+                  <Table.Td>{purchase.type}</Table.Td>
+                  <Table.Td>{purchase.status}</Table.Td>
+                  <Table.Td>{(purchase.amount / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        )}
+      </section>
+    </div>
   );
 }
