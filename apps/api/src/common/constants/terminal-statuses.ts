@@ -1,0 +1,2 @@
+
+export const TERMINAL_STATUSES_SUBSCRIPTION = new Set<string>(['CANCELLED', 'TRANSFERRED']);
