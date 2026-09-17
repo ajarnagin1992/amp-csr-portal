@@ -1,5 +1,5 @@
-import { validUser } from '../test/fixtures.js';
-import { getUsers } from './users.js';
+import { validUser, validUserDetail } from '../test/fixtures.js';
+import { getUser, getUsers } from './users.js';
 
 
 function mockFetchOnce(body: unknown, ok = true, status = 200) {
@@ -56,5 +56,40 @@ describe('getUsers', () => {
     mockFetchOnce({ data: [{ ...validUser, status: 'BOGUS' }], total: 1 });
 
     await expect(getUsers()).rejects.toThrow();
+  });
+});
+
+describe('getUser', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('requests the user by id', async () => {
+    const fetchMock = mockFetchOnce(validUserDetail);
+
+    await getUser(1);
+
+    const [url] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/users/1');
+  });
+
+  it('returns the parsed user detail on a valid response', async () => {
+    mockFetchOnce(validUserDetail);
+
+    const result = await getUser(1);
+
+    expect(result).toEqual(validUserDetail);
+  });
+
+  it('throws when the response is not ok', async () => {
+    mockFetchOnce({ message: 'not found' }, false, 404);
+
+    await expect(getUser(1)).rejects.toThrow();
+  });
+
+  it('throws when the response body does not match the shared schema', async () => {
+    mockFetchOnce({ ...validUserDetail, vehicles: undefined });
+
+    await expect(getUser(1)).rejects.toThrow();
   });
 });
