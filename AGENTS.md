@@ -14,4 +14,8 @@ When implementing a new feature or behavior change, follow this process. Do not 
 
 Do not write implementation code ahead of a test that justifies it. Do not write multiple tests' worth of implementation in one step, even if the full solution is obvious up front — the point is that each test independently earns the code that makes it pass. Present each step to the user for validation before continuing.
 
+### Assert behavior, not incidental call shape
+
+When a test asserts on a mock's call (e.g. `toHaveBeenCalledWith`), assert the thing that's actually meaningful — the filter/value/argument that reflects real behavior — not an incidental detail like exact argument count that only happens to differ because of how the code was written. A test like `toHaveBeenCalledWith()` (asserting zero arguments) to distinguish "no filter" from "filter applied" forces the implementation into unnecessary branching (e.g. `condition ? fn(x) : fn()`) purely to satisfy the test, even when the underlying call (e.g. `fn(undefined)`) is functionally identical. Prefer asserting the actual value that matters (e.g. `toHaveBeenCalledWith({ where: undefined })`) so the implementation can stay simple and unconditional (e.g. always `fn({ where })`). If an existing test is forcing awkward branching in the implementation for no behavioral reason, flag it and prefer relaxing the test over keeping the branch.
+
 This applies to new features and behavior changes. It does not apply to pure config edits, dependency bumps, or typo/formatting fixes with no behavior change.
