@@ -30,6 +30,7 @@ const validPurchase = {
   amount: 1500,
   description: 'Single wash',
   createdAt: '2026-01-01T00:00:00.000Z',
+  vehicle: { id: 1, licensePlate: 'ABC123' },
 };
 
 const validUserDetail = {
@@ -82,6 +83,11 @@ describe('purchaseSchema', () => {
 
   it('rejects a missing amount', () => {
     const { amount, ...rest } = validPurchase;
+    expect(purchaseSchema.safeParse(rest).success).toBe(false);
+  });
+
+  it('rejects a missing vehicle', () => {
+    const { vehicle, ...rest } = validPurchase;
     expect(purchaseSchema.safeParse(rest).success).toBe(false);
   });
 });

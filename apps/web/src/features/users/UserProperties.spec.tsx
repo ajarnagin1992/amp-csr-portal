@@ -38,7 +38,7 @@ describe('UserProperties', () => {
 
     renderUserProperties();
 
-    await waitFor(() => expect(screen.getByText('ABC123')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0));
     expect(screen.getByText('Toyota')).toBeInTheDocument();
   });
 
@@ -68,7 +68,7 @@ describe('UserProperties', () => {
 
     renderUserProperties();
 
-    await waitFor(() => expect(screen.getByText('ABC123')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0));
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 
@@ -81,6 +81,16 @@ describe('UserProperties', () => {
     expect(screen.getByText('SINGLE_WASH')).toBeInTheDocument();
     expect(screen.getByText('SUCCESS')).toBeInTheDocument();
     expect(screen.getByText('$15.00')).toBeInTheDocument();
+  });
+
+  it('shows the vehicle for each purchase', async () => {
+    vi.mocked(getUser).mockResolvedValue(validUserDetail);
+
+    renderUserProperties();
+
+    await waitFor(() => expect(screen.getByText('Single wash')).toBeInTheDocument());
+    const purchaseRow = screen.getByText('Single wash').closest('tr');
+    expect(within(purchaseRow!).getByText('ABC123')).toBeInTheDocument();
   });
 
   it('shows a message when the user has no purchases', async () => {

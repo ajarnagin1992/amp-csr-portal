@@ -73,6 +73,7 @@ export function UserProperties() {
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Date</Table.Th>
+              <Table.Th>Vehicle</Table.Th>
               <Table.Th>Description</Table.Th>
               <Table.Th>Type</Table.Th>
               <Table.Th>Status</Table.Th>
@@ -83,6 +84,7 @@ export function UserProperties() {
             {data.purchases.map((purchase) => (
               <Table.Tr key={purchase.id}>
                 <Table.Td>{purchase.createdAt}</Table.Td>
+                <Table.Td>{purchase.vehicle.licensePlate}</Table.Td>
                 <Table.Td>{purchase.description}</Table.Td>
                 <Table.Td>{purchase.type}</Table.Td>
                 <Table.Td>{purchase.status}</Table.Td>

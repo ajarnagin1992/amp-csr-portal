@@ -47,6 +47,7 @@ export class UsersService {
       this.prisma.purchase.findMany({
         where: { mobileUserId: id },
         orderBy: { createdAt: 'desc' },
+        include: { vehicle: { select: { id: true, licensePlate: true } } },
       }),
     ]);
 

@@ -15,7 +15,11 @@ describe('UsersService', () => {
       update: (args: { where: { id: number }; data: UpdateUserDto }) => Promise<MobileUser>;
     };
     purchase: {
-      findMany: (args: { where: { mobileUserId: number }; orderBy?: object }) => Promise<Purchase[]>;
+      findMany: (args: {
+        where: { mobileUserId: number };
+        orderBy?: object;
+        include?: Prisma.PurchaseInclude;
+      }) => Promise<Purchase[]>;
     };
   };
 
@@ -197,7 +201,7 @@ describe('UsersService', () => {
       expect(result.vehicles).toEqual([{ id: 10, subscription: undefined }]);
     });
 
-    it('fetches the purchase history for that user, most recent first', async () => {
+    it('fetches the purchase history for that user, most recent first, including the vehicle license plate', async () => {
       vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue({ id: 1, vehicles: [] });
       vi.mocked(prisma.purchase.findMany).mockResolvedValue([]);
 
@@ -206,6 +210,7 @@ describe('UsersService', () => {
       const args: Prisma.PurchaseFindManyArgs = {
         where: { mobileUserId: 1 },
         orderBy: { createdAt: 'desc' },
+        include: { vehicle: { select: { id: true, licensePlate: true } } },
       };
       expect(prisma.purchase.findMany).toHaveBeenCalledWith(args);
     });

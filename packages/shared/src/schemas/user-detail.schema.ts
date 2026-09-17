@@ -26,6 +26,10 @@ export const purchaseSchema = z.object({
   amount: z.number(),
   description: z.string(),
   createdAt: z.iso.datetime(),
+  vehicle: z.object({
+    id: z.number(),
+    licensePlate: z.string(),
+  }),
 });
 
 export type PurchaseDto = z.infer<typeof purchaseSchema>;
