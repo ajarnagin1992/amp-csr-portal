@@ -1,9 +1,170 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Alert, Button, Group, Loader, Modal, Table, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Button, Group, Loader, Modal, Select, Table, Text, TextInput, Title } from '@mantine/core';
 import { useUser } from './useUser.js';
 import { useUpdateUser } from './useUpdateUser.js';
-import type { MobileUserDto } from '@amp-csr/shared';
+import { usePlans } from '../plans/usePlans.js';
+import { useCreateSubscription } from '../subscriptions/useCreateSubscription.js';
+import { useCancelSubscription } from '../subscriptions/useCancelSubscription.js';
+import { useTransferSubscription } from '../subscriptions/useTransferSubscription.js';
+import { formatDate } from '../../utils/formatDate.js';
+import type { MobileUserDto, VehicleDto } from '@amp-csr/shared';
+
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['ACTIVE', 'OVERDUE']);
+
+function SubscriptionActions({ vehicle, allVehicles }: { vehicle: VehicleDto; allVehicles: VehicleDto[] }) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [planId, setPlanId] = useState<string | undefined>(undefined);
+  const [transferVehicleId, setTransferVehicleId] = useState<string | undefined>(undefined);
+
+  const { data: plans } = usePlans();
+  const createSubscription = useCreateSubscription();
+  const cancelSubscription = useCancelSubscription();
+  const transferSubscription = useTransferSubscription();
+
+  const subscription = vehicle.subscription;
+  const hasActiveSubscription = !!subscription && ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status);
+  const transferTargets = allVehicles.filter(
+    (v) => v.id !== vehicle.id && !(v.subscription && ACTIVE_SUBSCRIPTION_STATUSES.has(v.subscription.status)),
+  );
+
+  if (!hasActiveSubscription) {
+    return (
+      <>
+        <Button
+          size="xs"
+          onClick={() => {
+            setPlanId(undefined);
+            createSubscription.reset();
+            setIsAdding(true);
+          }}
+        >
+          Add Subscription
+        </Button>
+        <Modal opened={isAdding} onClose={() => setIsAdding(false)} title={`Add subscription — ${vehicle.licensePlate}`}>
+          <Select
+            label="Plan"
+            placeholder="Select a plan"
+            data={(plans ?? []).map((plan) => ({
+              value: String(plan.id),
+              label: `${plan.name} — ${(plan.price / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}/mo`,
+            }))}
+            value={planId}
+            onChange={(value) => setPlanId(value ?? undefined)}
+          />
+          {createSubscription.isError && (
+            <Alert color="red" mt="sm">
+              Failed to add subscription: {createSubscription.error.message}
+            </Alert>
+          )}
+          <Group mt="md">
+            <Button
+              disabled={!planId}
+              onClick={() =>
+                createSubscription.mutate(
+                  { vehicleId: vehicle.id, planId: Number(planId) },
+                  { onSuccess: () => setIsAdding(false) },
+                )
+              }
+            >
+              Add
+            </Button>
+            <Button variant="default" onClick={() => setIsAdding(false)}>
+              Cancel
+            </Button>
+          </Group>
+        </Modal>
+      </>
+    );
+  }
+
+  return (
+    <Group gap="xs" wrap="nowrap">
+      <Button
+        size="xs"
+        color="red"
+        onClick={() => {
+          cancelSubscription.reset();
+          setIsCancelling(true);
+        }}
+      >
+        End Subscription
+      </Button>
+      <Button
+        size="xs"
+        variant="default"
+        disabled={transferTargets.length === 0}
+        onClick={() => {
+          setTransferVehicleId(undefined);
+          transferSubscription.reset();
+          setIsTransferring(true);
+        }}
+      >
+        Transfer
+      </Button>
+
+      <Modal opened={isCancelling} onClose={() => setIsCancelling(false)} title="End subscription">
+        <Text>Are you sure you want to cancel the subscription on {vehicle.licensePlate}?</Text>
+        {cancelSubscription.isError && (
+          <Alert color="red" mt="sm">
+            Failed to cancel subscription: {cancelSubscription.error.message}
+          </Alert>
+        )}
+        <Group mt="md">
+          <Button
+            color="red"
+            onClick={() => cancelSubscription.mutate(subscription.id, { onSuccess: () => setIsCancelling(false) })}
+          >
+            Confirm
+          </Button>
+          <Button variant="default" onClick={() => setIsCancelling(false)}>
+            Back
+          </Button>
+        </Group>
+      </Modal>
+
+      <Modal
+        opened={isTransferring}
+        onClose={() => setIsTransferring(false)}
+        title={`Transfer subscription — ${vehicle.licensePlate}`}
+      >
+        <Select
+          label="Transfer to vehicle"
+          placeholder="Select a vehicle"
+          data={transferTargets.map((v) => ({
+            value: String(v.id),
+            label: `${v.licensePlate} — ${v.make} ${v.model}`,
+          }))}
+          value={transferVehicleId}
+          onChange={(value) => setTransferVehicleId(value ?? undefined)}
+        />
+        {transferSubscription.isError && (
+          <Alert color="red" mt="sm">
+            Failed to transfer subscription: {transferSubscription.error.message}
+          </Alert>
+        )}
+        <Group mt="md">
+          <Button
+            disabled={!transferVehicleId}
+            onClick={() =>
+              transferSubscription.mutate(
+                { id: subscription.id, transferVehicleId: Number(transferVehicleId) },
+                { onSuccess: () => setIsTransferring(false) },
+              )
+            }
+          >
+            Transfer
+          </Button>
+          <Button variant="default" onClick={() => setIsTransferring(false)}>
+            Cancel
+          </Button>
+        </Group>
+      </Modal>
+    </Group>
+  );
+}
 
 function AccountInfo({ data }: { data: MobileUserDto }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -132,6 +293,7 @@ export function UserProperties() {
               <Table.Th>Plan</Table.Th>
               <Table.Th>Subscription Status</Table.Th>
               <Table.Th>Next Billing Date</Table.Th>
+              <Table.Th>Actions</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -144,7 +306,10 @@ export function UserProperties() {
                 <Table.Td>{vehicle.year}</Table.Td>
                 <Table.Td>{vehicle.subscription?.plan.name ?? '—'}</Table.Td>
                 <Table.Td>{vehicle.subscription?.status ?? '—'}</Table.Td>
-                <Table.Td>{vehicle.subscription?.nextBillingDate ?? '—'}</Table.Td>
+                <Table.Td>{formatDate(vehicle.subscription?.nextBillingDate)}</Table.Td>
+                <Table.Td>
+                  <SubscriptionActions vehicle={vehicle} allVehicles={data.vehicles} />
+                </Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>
@@ -169,7 +334,7 @@ export function UserProperties() {
           <Table.Tbody>
             {data.purchases.map((purchase) => (
               <Table.Tr key={purchase.id}>
-                <Table.Td>{purchase.createdAt}</Table.Td>
+                <Table.Td>{formatDate(purchase.createdAt)}</Table.Td>
                 <Table.Td>{purchase.vehicle.licensePlate}</Table.Td>
                 <Table.Td>{purchase.description}</Table.Td>
                 <Table.Td>{purchase.type}</Table.Td>

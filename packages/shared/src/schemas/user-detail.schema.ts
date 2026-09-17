@@ -26,7 +26,10 @@ export const purchaseSchema = z.object({
   amount: z.number(),
   description: z.string(),
   createdAt: z.iso.datetime(),
-  subscriptionId: z.number().nullable(),
+  subscriptionId: z
+    .number()
+    .nullish()
+    .transform((value) => value ?? undefined),
   vehicle: z.object({
     id: z.number(),
     licensePlate: z.string(),

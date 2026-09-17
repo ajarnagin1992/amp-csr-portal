@@ -59,7 +59,7 @@ describe('UserProperties', () => {
 
     await waitFor(() => expect(screen.getByText('Unlimited Monthly')).toBeInTheDocument());
     expect(screen.getAllByText('ACTIVE').length).toBeGreaterThan(1);
-    expect(screen.getByText('2026-02-01T00:00:00.000Z')).toBeInTheDocument();
+    expect(screen.getByText('Feb 1, 2026')).toBeInTheDocument();
   });
 
   it('shows a placeholder when a vehicle has no subscription', async () => {

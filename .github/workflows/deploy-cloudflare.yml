@@ -1,0 +1,63 @@
+name: Deploy gateway
+
+# Builds the React app and deploys it, alongside the API gateway Worker, to
+# Cloudflare. The Worker serves apps/web/dist as static assets and proxies
+# /api/* to the NestJS API (see apps/gateway/wrangler.jsonc).
+#
+# Runs only after CI has passed on master, and only when app code or
+# dependencies actually changed.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  changes:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ github.event_name == 'workflow_dispatch' || steps.diff.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 2
+
+      - id: diff
+        if: github.event_name == 'workflow_run'
+        run: |
+          echo "relevant=$(git diff --name-only HEAD~1 HEAD | grep -qE '^(apps/web/|apps/gateway/|packages/shared/|package(-lock)?\.json)' && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build -w @amp-csr/shared
+
+      - name: Build web app
+        run: npm run build -w @amp-csr/web
+        env:
+          # Same-origin path: the gateway Worker proxies this to the API.
+          VITE_API_URL: /api
+
+      - name: Deploy Worker (serves apps/web/dist + proxies /api)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/gateway
+          command: deploy --var API_ORIGIN:${{ secrets.API_ORIGIN }}
