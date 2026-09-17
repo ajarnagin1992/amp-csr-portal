@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller.js';
 import { UsersService } from './users.service.js';
 import type { MobileUser } from '../generated/prisma/client.js';
-import type { UpdateUserDto } from './dto/update-user.dto.js';
+import type { UpdateUserDto } from '@amp-csr/shared';
 
 describe('UsersController', () => {
   let usersController: UsersController;

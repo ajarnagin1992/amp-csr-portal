@@ -3,7 +3,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma, type MobileUser, type Purchase } from '../generated/prisma/client.js';
-import type { UpdateUserDto } from './dto/update-user.dto.js';
+import type { UpdateUserDto } from '@amp-csr/shared';
 
 describe('UsersService', () => {
   let usersService: UsersService;

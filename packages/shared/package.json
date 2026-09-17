@@ -15,13 +15,16 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
-    "lint": "oxlint src/"
+    "lint": "oxlint src/",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "peerDependencies": {
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "typescript": "^6",
+    "vitest": "^4.1.11",
     "zod": "^4.4.3"
   }
 }

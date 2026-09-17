@@ -2,7 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma, type MobileUser } from '../generated/prisma/client.js';
 import { PRISMA_ERROR_CODE } from '../common/constants/prisma-error-codes.js';
-import type { UpdateUserDto } from './dto/update-user.dto.js';
+import type { UpdateUserDto } from '@amp-csr/shared';
 
 @Injectable()
 export class UsersService {

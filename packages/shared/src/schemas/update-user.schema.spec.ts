@@ -1,4 +1,4 @@
-import { updateUserSchema } from './update-user.dto.js';
+import { updateUserSchema } from './update-user.schema.js';
 
 describe('updateUserSchema', () => {
   it('accepts a partial update with just one field', () => {

@@ -1,4 +1,4 @@
-import { updateSubscriptionSchema } from './update-subscription.dto.js';
+import { updateSubscriptionSchema } from './update-subscription.schema.js';
 
 describe('updateSubscriptionSchema', () => {
   it('accepts a status-only update', () => {

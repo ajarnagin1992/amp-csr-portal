@@ -1,4 +1,4 @@
-import { createSubscriptionSchema } from './create-subscription.dto.js';
+import { createSubscriptionSchema } from './create-subscription.schema.js';
 
 describe('createSubscriptionSchema', () => {
   it('accepts a valid vehicleId and planId', () => {

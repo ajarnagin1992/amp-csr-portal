@@ -1,8 +1,12 @@
 import { Body, Controller, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
-import { createSubscriptionSchema, type CreateSubscriptionDto } from './dto/create-subscription.dto.js';
-import { updateSubscriptionSchema, type UpdateSubscriptionDto } from './dto/update-subscription.dto.js';
+import {
+  createSubscriptionSchema,
+  type CreateSubscriptionDto,
+  updateSubscriptionSchema,
+  type UpdateSubscriptionDto,
+} from '@amp-csr/shared';
 import type { Subscription } from '../generated/prisma/client.js';
 
 @Controller('subscriptions')
