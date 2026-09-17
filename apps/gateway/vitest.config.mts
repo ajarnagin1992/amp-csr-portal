@@ -5,6 +5,11 @@ export default defineConfig({
 	plugins: [
 		cloudflareTest({
 			wrangler: { configPath: "./wrangler.jsonc" },
+			miniflare: {
+				bindings: {
+					API_ORIGIN: "https://backend.example",
+				},
+			},
 		}),
 	],
 });

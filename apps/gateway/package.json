@@ -6,9 +6,10 @@
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
-	"lint": "oxlint src/",
+	"lint": "oxlint src/ test/",
     "start": "wrangler dev",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json",
     "cf-typegen": "wrangler types"
   },
   "devDependencies": {
