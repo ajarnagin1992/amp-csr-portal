@@ -1,4 +1,4 @@
-import { Controller, DefaultValuePipe, Get, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { UsersService } from './users.service.js';
 import type { MobileUser } from '../generated/prisma/client.js';
 
@@ -13,5 +13,10 @@ export class UsersController {
     @Query('search') search?: string,
   ): Promise<{ data: MobileUser[]; total: number }> {
     return this.usersService.findAll(page, pageSize, search);
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.findOne(id);
   }
 }
