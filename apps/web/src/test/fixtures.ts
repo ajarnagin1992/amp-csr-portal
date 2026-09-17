@@ -1,4 +1,11 @@
-import type { ListUsersResponseDto, MobileUserDto, UserDetailDto, VehicleDto } from "@amp-csr/shared";
+import type {
+  ListUsersResponseDto,
+  MobileUserDto,
+  PurchaseDto,
+  SubscriptionDto,
+  UserDetailDto,
+  VehicleDto,
+} from "@amp-csr/shared";
 
 export const validUser: MobileUserDto = {
   id: 1,
@@ -17,6 +24,18 @@ export const pagedUsersResponse: ListUsersResponseDto = {
   total: 45,
 };
 
+export const validSubscription: SubscriptionDto = {
+  id: 1,
+  status: 'ACTIVE',
+  nextBillingDate: '2026-02-01T00:00:00.000Z',
+  plan: {
+    id: 1,
+    name: 'Unlimited Monthly',
+    price: 2999,
+    status: 'ACTIVE',
+  },
+};
+
 export const validVehicle: VehicleDto = {
   id: 1,
   licensePlate: 'ABC123',
@@ -24,9 +43,20 @@ export const validVehicle: VehicleDto = {
   make: 'Toyota',
   model: 'Corolla',
   year: 2020,
+  subscription: validSubscription,
+};
+
+export const validPurchase: PurchaseDto = {
+  id: 1,
+  type: 'SINGLE_WASH',
+  status: 'SUCCESS',
+  amount: 1500,
+  description: 'Single wash',
+  createdAt: '2026-01-15T00:00:00.000Z',
 };
 
 export const validUserDetail: UserDetailDto = {
   ...validUser,
   vehicles: [validVehicle],
+  purchases: [validPurchase],
 };

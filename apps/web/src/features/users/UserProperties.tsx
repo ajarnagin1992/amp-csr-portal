@@ -43,6 +43,9 @@ export function UserProperties() {
               <Table.Th>Make</Table.Th>
               <Table.Th>Model</Table.Th>
               <Table.Th>Year</Table.Th>
+              <Table.Th>Plan</Table.Th>
+              <Table.Th>Subscription Status</Table.Th>
+              <Table.Th>Next Billing Date</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -53,6 +56,37 @@ export function UserProperties() {
                 <Table.Td>{vehicle.make}</Table.Td>
                 <Table.Td>{vehicle.model}</Table.Td>
                 <Table.Td>{vehicle.year}</Table.Td>
+                <Table.Td>{vehicle.subscription?.plan.name ?? '—'}</Table.Td>
+                <Table.Td>{vehicle.subscription?.status ?? '—'}</Table.Td>
+                <Table.Td>{vehicle.subscription?.nextBillingDate ?? '—'}</Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      )}
+
+      <Title order={3}>Purchase History</Title>
+      {data.purchases.length === 0 ? (
+        <Text>No purchases</Text>
+      ) : (
+        <Table>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Date</Table.Th>
+              <Table.Th>Description</Table.Th>
+              <Table.Th>Type</Table.Th>
+              <Table.Th>Status</Table.Th>
+              <Table.Th>Amount</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {data.purchases.map((purchase) => (
+              <Table.Tr key={purchase.id}>
+                <Table.Td>{purchase.createdAt}</Table.Td>
+                <Table.Td>{purchase.description}</Table.Td>
+                <Table.Td>{purchase.type}</Table.Td>
+                <Table.Td>{purchase.status}</Table.Td>
+                <Table.Td>{(purchase.amount / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>

@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { renderWithQueryClient } from '../../test/renderWithQueryClient.js';
 import { getUser } from '../../api/users.js';
 import { UserProperties } from './UserProperties.js';
@@ -29,7 +29,8 @@ describe('UserProperties', () => {
     await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
     expect(screen.getByText('jane@example.com')).toBeInTheDocument();
     expect(screen.getByText('555-0100')).toBeInTheDocument();
-    expect(screen.getByText('ACTIVE')).toBeInTheDocument();
+    const accountTable = screen.getByText('Email').closest('table');
+    expect(within(accountTable!).getByText('ACTIVE')).toBeInTheDocument();
   });
 
   it('shows the user vehicles once loaded', async () => {
@@ -47,6 +48,47 @@ describe('UserProperties', () => {
     renderUserProperties();
 
     await waitFor(() => expect(screen.getByText(/no vehicles/i)).toBeInTheDocument());
+  });
+
+  it("shows a vehicle's active subscription", async () => {
+    vi.mocked(getUser).mockResolvedValue(validUserDetail);
+
+    renderUserProperties();
+
+    await waitFor(() => expect(screen.getByText('Unlimited Monthly')).toBeInTheDocument());
+    expect(screen.getAllByText('ACTIVE').length).toBeGreaterThan(1);
+    expect(screen.getByText('2026-02-01T00:00:00.000Z')).toBeInTheDocument();
+  });
+
+  it('shows a placeholder when a vehicle has no subscription', async () => {
+    vi.mocked(getUser).mockResolvedValue({
+      ...validUserDetail,
+      vehicles: [{ ...validUserDetail.vehicles[0], subscription: undefined }],
+    });
+
+    renderUserProperties();
+
+    await waitFor(() => expect(screen.getByText('ABC123')).toBeInTheDocument());
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+  });
+
+  it('shows the purchase history once loaded', async () => {
+    vi.mocked(getUser).mockResolvedValue(validUserDetail);
+
+    renderUserProperties();
+
+    await waitFor(() => expect(screen.getByText('Single wash')).toBeInTheDocument());
+    expect(screen.getByText('SINGLE_WASH')).toBeInTheDocument();
+    expect(screen.getByText('SUCCESS')).toBeInTheDocument();
+    expect(screen.getByText('$15.00')).toBeInTheDocument();
+  });
+
+  it('shows a message when the user has no purchases', async () => {
+    vi.mocked(getUser).mockResolvedValue({ ...validUserDetail, purchases: [] });
+
+    renderUserProperties();
+
+    await waitFor(() => expect(screen.getByText(/no purchases/i)).toBeInTheDocument());
   });
 
   it('shows an error message when the request fails', async () => {
