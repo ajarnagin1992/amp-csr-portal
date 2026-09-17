@@ -37,6 +37,7 @@ enum SubscriptionStatus {
   ACTIVE
   OVERDUE
   CANCELLED
+  TRANSFERRED
 }
 
 model CsrUser {
