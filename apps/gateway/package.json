@@ -1,0 +1,21 @@
+{
+  "name": "@amp-csr/gateway",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+	"lint": "oxlint src/",
+    "start": "wrangler dev",
+    "test": "vitest run",
+    "cf-typegen": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.0.0",
+    "@types/node": "^24.13.5",
+    "typescript": "^6",
+    "vitest": "~4.1.0",
+    "wrangler": "^4.132.0"
+  }
+}
