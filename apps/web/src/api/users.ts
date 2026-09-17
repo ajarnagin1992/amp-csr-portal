@@ -2,8 +2,11 @@ import type { z } from 'zod';
 import {
   getUsersQuerySchema,
   listUsersResponseSchema,
+  mobileUserSchema,
   userDetailSchema,
   type ListUsersResponseDto,
+  type MobileUserDto,
+  type UpdateUserDto,
   type UserDetailDto,
 } from '@amp-csr/shared';
 
@@ -37,4 +40,20 @@ export async function getUser(id: number): Promise<UserDetailDto> {
 
   const body = await response.json();
   return userDetailSchema.parse(body);
+}
+
+export async function updateUser(id: number, data: UpdateUserDto): Promise<MobileUserDto> {
+  const url = new URL(`/users/${id}`, API_BASE_URL);
+
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to update user: ${response.status}`);
+  }
+
+  const body = await response.json();
+  return mobileUserSchema.parse(body);
 }

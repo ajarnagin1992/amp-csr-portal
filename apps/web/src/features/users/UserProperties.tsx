@@ -1,19 +1,60 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Alert, Loader, Table, Text, Title } from '@mantine/core';
+import { Alert, Button, Group, Loader, Modal, Table, Text, TextInput, Title } from '@mantine/core';
 import { useUser } from './useUser.js';
+import { useUpdateUser } from './useUpdateUser.js';
+import type { MobileUserDto } from '@amp-csr/shared';
 
-export function UserProperties() {
-  const { id } = useParams();
-  const { data, isPending, isError } = useUser(Number(id));
+function AccountInfo({ data }: { data: MobileUserDto }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isConfirmingStatus, setIsConfirmingStatus] = useState(false);
+  const [firstName, setFirstName] = useState(data.firstName);
+  const [lastName, setLastName] = useState(data.lastName);
+  const [email, setEmail] = useState(data.email);
+  const [phone, setPhone] = useState(data.phone);
+  const { mutate, isError, error } = useUpdateUser(data.id);
 
-  if (isPending) return <Loader aria-label="Loading" />;
-  if (isError) return <Alert color="red">Failed to load user</Alert>;
+  function startEditing() {
+    setFirstName(data.firstName);
+    setLastName(data.lastName);
+    setEmail(data.email);
+    setPhone(data.phone);
+    setIsEditing(true);
+  }
+
+  function save() {
+    mutate({ firstName, lastName, email, phone }, { onSuccess: () => setIsEditing(false) });
+  }
+
+  const nextStatus = data.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+  const hasChanges =
+    firstName !== data.firstName ||
+    lastName !== data.lastName ||
+    email !== data.email ||
+    phone !== data.phone;
+
+  if (isEditing) {
+    return (
+      <>
+        <TextInput label="First Name" value={firstName} onChange={(e) => setFirstName(e.currentTarget.value)} />
+        <TextInput label="Last Name" value={lastName} onChange={(e) => setLastName(e.currentTarget.value)} />
+        <TextInput label="Email" value={email} onChange={(e) => setEmail(e.currentTarget.value)} />
+        <TextInput label="Phone" value={phone} onChange={(e) => setPhone(e.currentTarget.value)} />
+        {isError && <Alert color="red">Failed to save: {error.message}</Alert>}
+        <Group>
+          <Button onClick={save} disabled={!hasChanges}>
+            Save
+          </Button>
+          <Button variant="default" onClick={() => setIsEditing(false)}>
+            Cancel
+          </Button>
+        </Group>
+      </>
+    );
+  }
 
   return (
     <>
-      <Title order={2}>
-        {data.firstName} {data.lastName}
-      </Title>
       <Table>
         <Table.Tbody>
           <Table.Tr>
@@ -30,6 +71,51 @@ export function UserProperties() {
           </Table.Tr>
         </Table.Tbody>
       </Table>
+      <Group>
+        <Button onClick={startEditing}>Edit</Button>
+        <Button color="red" onClick={() => setIsConfirmingStatus(true)}>
+          {data.status === 'ACTIVE' ? 'Deactivate account' : 'Reactivate account'}
+        </Button>
+      </Group>
+      <Modal
+        opened={isConfirmingStatus}
+        onClose={() => setIsConfirmingStatus(false)}
+        title={data.status === 'ACTIVE' ? 'Deactivate account' : 'Reactivate account'}
+      >
+        <Text>
+          Are you sure you want to {data.status === 'ACTIVE' ? 'deactivate' : 'reactivate'} this account?
+        </Text>
+        <Group>
+          <Button
+            onClick={() => {
+              mutate({ status: nextStatus });
+              setIsConfirmingStatus(false);
+            }}
+          >
+            Confirm
+          </Button>
+          <Button variant="default" onClick={() => setIsConfirmingStatus(false)}>
+            Cancel
+          </Button>
+        </Group>
+      </Modal>
+    </>
+  );
+}
+
+export function UserProperties() {
+  const { id } = useParams();
+  const { data, isPending, isError } = useUser(Number(id));
+
+  if (isPending) return <Loader aria-label="Loading" />;
+  if (isError) return <Alert color="red">Failed to load user</Alert>;
+
+  return (
+    <>
+      <Title order={2}>
+        {data.firstName} {data.lastName}
+      </Title>
+      <AccountInfo data={data} />
 
       <Title order={3}>Vehicles</Title>
       {data.vehicles.length === 0 ? (

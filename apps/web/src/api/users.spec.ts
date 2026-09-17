@@ -1,5 +1,5 @@
 import { validUser, validUserDetail } from '../test/fixtures.js';
-import { getUser, getUsers } from './users.js';
+import { getUser, getUsers, updateUser } from './users.js';
 
 
 function mockFetchOnce(body: unknown, ok = true, status = 200) {
@@ -91,5 +91,50 @@ describe('getUser', () => {
     mockFetchOnce({ ...validUserDetail, vehicles: undefined });
 
     await expect(getUser(1)).rejects.toThrow();
+  });
+});
+
+describe('updateUser', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends a PATCH request to the user's endpoint", async () => {
+    const fetchMock = mockFetchOnce(validUser);
+
+    await updateUser(1, { firstName: 'Jane' });
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/users/1');
+    expect(init.method).toBe('PATCH');
+  });
+
+  it('sends the update fields as the JSON request body', async () => {
+    const fetchMock = mockFetchOnce(validUser);
+
+    await updateUser(1, { firstName: 'Jane', email: 'jane@example.com' });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ firstName: 'Jane', email: 'jane@example.com' });
+  });
+
+  it('returns the parsed user on a valid response', async () => {
+    mockFetchOnce(validUser);
+
+    const result = await updateUser(1, { firstName: 'Jane' });
+
+    expect(result).toEqual(validUser);
+  });
+
+  it('throws when the response is not ok', async () => {
+    mockFetchOnce({ message: 'conflict' }, false, 409);
+
+    await expect(updateUser(1, { email: 'taken@example.com' })).rejects.toThrow();
+  });
+
+  it('throws when the response body does not match the shared schema', async () => {
+    mockFetchOnce({ ...validUser, status: 'BOGUS' });
+
+    await expect(updateUser(1, { firstName: 'Jane' })).rejects.toThrow();
   });
 });
