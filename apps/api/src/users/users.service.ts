@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { MobileUser } from '../generated/prisma/client.js';
+import { Prisma, type MobileUser } from '../generated/prisma/client.js';
+import { PRISMA_ERROR_CODE } from '../common/constants/prisma-error-codes.js';
+import type { UpdateUserDto } from './dto/update-user.dto.js';
 
 @Injectable()
 export class UsersService {
@@ -51,5 +53,22 @@ export class UsersService {
     }
 
     return { ...user, purchases };
+  }
+
+  async update(id: number, data: UpdateUserDto): Promise<MobileUser> {
+    try {
+      return await this.prisma.mobileUser.update({ where: { id }, data });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_ERROR_CODE.RECORD_NOT_FOUND) {
+        throw new NotFoundException(`User ${id} not found`);
+      }
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === PRISMA_ERROR_CODE.UNIQUE_CONSTRAINT_VIOLATION
+      ) {
+        throw new ConflictException('Email is already in use');
+      }
+      throw error;
+    }
   }
 }

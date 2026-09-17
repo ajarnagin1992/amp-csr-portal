@@ -2,16 +2,18 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller.js';
 import { UsersService } from './users.service.js';
 import type { MobileUser } from '../generated/prisma/client.js';
+import type { UpdateUserDto } from './dto/update-user.dto.js';
 
 describe('UsersController', () => {
   let usersController: UsersController;
   let usersService: {
     findAll: (page: number, pageSize: number, search?: string) => Promise<{ data: MobileUser[]; total: number }>;
     findOne: (id: number) => Promise<unknown>;
+    update: (id: number, dto: UpdateUserDto) => Promise<MobileUser>;
   };
 
   beforeEach(async () => {
-    usersService = { findAll: vi.fn(), findOne: vi.fn() };
+    usersService = { findAll: vi.fn(), findOne: vi.fn(), update: vi.fn() };
 
     const app: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
@@ -60,6 +62,23 @@ describe('UsersController', () => {
       await usersController.findOne(1);
 
       expect(usersService.findOne).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('update', () => {
+    it('returns the updated user from the service', async () => {
+      const updated = { id: 1, firstName: 'Jane' } as MobileUser;
+      vi.mocked(usersService.update).mockResolvedValue(updated);
+
+      await expect(usersController.update(1, { firstName: 'Jane' })).resolves.toBe(updated);
+    });
+
+    it('passes the id and the request body through to the service', async () => {
+      vi.mocked(usersService.update).mockResolvedValue({} as MobileUser);
+
+      await usersController.update(1, { firstName: 'Jane' });
+
+      expect(usersService.update).toHaveBeenCalledWith(1, { firstName: 'Jane' });
     });
   });
 });

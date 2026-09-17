@@ -1,6 +1,8 @@
-import { Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Body, Controller, DefaultValuePipe, Get, Param, Patch, ParseIntPipe, Query } from '@nestjs/common';
 import { UsersService } from './users.service.js';
 import type { MobileUser } from '../generated/prisma/client.js';
+import { updateUserSchema, type UpdateUserDto } from './dto/update-user.dto.js';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 
 @Controller('users')
 export class UsersController {
@@ -18,5 +20,13 @@ export class UsersController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body(new ZodValidationPipe(updateUserSchema)) dto: UpdateUserDto,
+  ): Promise<MobileUser> {
+    return this.usersService.update(id, dto);
   }
 }

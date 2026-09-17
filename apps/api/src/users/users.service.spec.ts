@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { MobileUser, Purchase } from '../generated/prisma/client.js';
+import { Prisma, type MobileUser, type Purchase } from '../generated/prisma/client.js';
+import type { UpdateUserDto } from './dto/update-user.dto.js';
 
 describe('UsersService', () => {
   let usersService: UsersService;
@@ -11,6 +12,7 @@ describe('UsersService', () => {
       findMany: (args: { where?: object; skip: number; take: number }) => Promise<MobileUser[]>;
       count: (args?: { where?: object }) => Promise<number>;
       findUnique: (args: { where: { id: number }; include?: object }) => Promise<unknown>;
+      update: (args: { where: { id: number }; data: UpdateUserDto }) => Promise<MobileUser>;
     };
     purchase: {
       findMany: (args: { where: { mobileUserId: number }; orderBy?: object }) => Promise<Purchase[]>;
@@ -23,6 +25,7 @@ describe('UsersService', () => {
         findMany: vi.fn(),
         count: vi.fn(),
         findUnique: vi.fn(),
+        update: vi.fn(),
       },
       purchase: {
         findMany: vi.fn(),
@@ -193,6 +196,49 @@ describe('UsersService', () => {
       vi.mocked(prisma.purchase.findMany).mockResolvedValue([]);
 
       await expect(usersService.findOne(999)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('update', () => {
+    it('updates the user and returns the updated record', async () => {
+      const updated = { id: 1, firstName: 'Jane' } as MobileUser;
+      vi.mocked(prisma.mobileUser.update).mockResolvedValue(updated);
+
+      await expect(usersService.update(1, { firstName: 'Jane' })).resolves.toEqual(updated);
+    });
+
+    it('passes the id and the partial data to Prisma', async () => {
+      vi.mocked(prisma.mobileUser.update).mockResolvedValue({} as MobileUser);
+
+      await usersService.update(1, { firstName: 'Jane' });
+
+      expect(prisma.mobileUser.update).toHaveBeenCalledWith({ where: { id: 1 }, data: { firstName: 'Jane' } });
+    });
+
+    it('throws NotFoundException when the user does not exist', async () => {
+      vi.mocked(prisma.mobileUser.update).mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Record not found', { code: 'P2025', clientVersion: '7.10.0' }),
+      );
+
+      await expect(usersService.update(999, { firstName: 'Jane' })).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws ConflictException when the email is already in use', async () => {
+      vi.mocked(prisma.mobileUser.update).mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: '7.10.0',
+        }),
+      );
+
+      await expect(usersService.update(1, { email: 'taken@example.com' })).rejects.toThrow(ConflictException);
+    });
+
+    it('rethrows unrelated errors unchanged', async () => {
+      const unrelatedError = new Error('connection lost');
+      vi.mocked(prisma.mobileUser.update).mockRejectedValue(unrelatedError);
+
+      await expect(usersService.update(1, { firstName: 'Jane' })).rejects.toThrow(unrelatedError);
     });
   });
 });
