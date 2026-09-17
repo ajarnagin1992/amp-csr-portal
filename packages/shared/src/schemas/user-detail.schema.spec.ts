@@ -30,6 +30,7 @@ const validPurchase = {
   amount: 1500,
   description: 'Single wash',
   createdAt: '2026-01-01T00:00:00.000Z',
+  subscriptionId: null,
   vehicle: { id: 1, licensePlate: 'ABC123' },
 };
 

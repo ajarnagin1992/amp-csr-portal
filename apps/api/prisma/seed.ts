@@ -142,7 +142,7 @@ async function main() {
         const isEnded = status === 'CANCELLED' || status === 'TRANSFERRED';
         const nextBillingDate = isEnded ? monthsAgo(Math.max(ageMonths - 2, 0)) : monthsAgo(-1);
 
-        await prisma.subscription.create({
+        const subscription = await prisma.subscription.create({
           data: {
             vehicleId: vehicle.id,
             planId: plan.id,
@@ -160,6 +160,7 @@ async function main() {
             data: {
               mobileUserId: user.id,
               vehicleId: vehicle.id,
+              subscriptionId: subscription.id,
               type: 'SUBSCRIPTION',
               status: purchaseStatusFor(m),
               amount: plan.price,

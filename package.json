@@ -15,7 +15,8 @@
     "dev": "concurrently -n shared,api,web -c gray,red,cyan \"npm run dev -w @amp-csr/shared\" \"npm run start:dev -w @amp-csr/api\" \"npm run dev -w @amp-csr/web\"",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "author": "Andrew Jarnagin",
   "license": "UNLICENSED",

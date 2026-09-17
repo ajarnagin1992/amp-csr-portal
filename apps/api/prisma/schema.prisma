@@ -98,18 +98,21 @@ model Plan {
 }
 
 model Purchase {
-  id           Int            @id @default(autoincrement())
-  mobileUserId Int            @map("mobile_user_id")
-  vehicleId    Int            @map("vehicle_id")
-  type         PurchaseType
-  status       PurchaseStatus
-  amount       Int
-  description  String
-  createdAt    DateTime       @default(now()) @map("created_at")
+  id             Int            @id @default(autoincrement())
+  mobileUserId   Int            @map("mobile_user_id")
+  vehicleId      Int            @map("vehicle_id")
+  subscriptionId Int?           @map("subscription_id")
+  type           PurchaseType
+  status         PurchaseStatus
+  amount         Int
+  description    String
+  createdAt      DateTime       @default(now()) @map("created_at")
 
-  mobileUser MobileUser @relation(fields: [mobileUserId], references: [id])
-  vehicle    Vehicle    @relation(fields: [vehicleId], references: [id])
+  mobileUser   MobileUser    @relation(fields: [mobileUserId], references: [id])
+  vehicle      Vehicle       @relation(fields: [vehicleId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
 
+  @@index([subscriptionId])
   @@map("purchases")
 }
 
@@ -122,8 +125,9 @@ model Subscription {
   createdAt       DateTime           @default(now()) @map("created_at")
   lastUpdated     DateTime           @updatedAt @map("last_updated")
 
-  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
-  plan    Plan    @relation(fields: [planId], references: [id])
+  vehicle   Vehicle    @relation(fields: [vehicleId], references: [id])
+  plan      Plan       @relation(fields: [planId], references: [id])
+  purchases Purchase[]
 
   @@index([vehicleId, createdAt])
   @@map("subscriptions")

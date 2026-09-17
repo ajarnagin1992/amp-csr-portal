@@ -40,6 +40,7 @@ erDiagram
 		int id PK
         int mobile_user_id FK
         int vehicle_id FK
+        int subscription_id FK "nullable"
 		enum type "SUBSCRIPTION | SINGLE_WASH"
         enum status "SUCCESS | FAILURE | REFUNDED"
 		int amount "cents"
@@ -61,4 +62,5 @@ erDiagram
 	VEHICLES ||--o{ SUBSCRIPTIONS : "subscribed to"
     PLANS ||--o{ SUBSCRIPTIONS : "tier of"
     VEHICLES ||--o{ PURCHASES : "charged for"
+    SUBSCRIPTIONS |o--o{ PURCHASES : "billed by"
 ```
