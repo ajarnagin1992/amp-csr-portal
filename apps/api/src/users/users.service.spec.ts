@@ -148,7 +148,7 @@ describe('UsersService', () => {
 
   describe('findOne', () => {
     it('returns the user merged with their purchase history', async () => {
-      const user = { id: 1, firstName: 'Jane', vehicles: [] } as MobileUser & { vehicles: unknown[] };
+      const user = { id: 1, firstName: 'Jane', vehicles: [] } as unknown as MobileUser & { vehicles: unknown[] };
       const purchases = [{ id: 10 }, { id: 11 }] as Purchase[];
       vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue(user);
       vi.mocked(prisma.purchase.findMany).mockResolvedValue(purchases);
@@ -189,7 +189,7 @@ describe('UsersService', () => {
     });
 
     it('throws NotFoundException when no user exists with that id', async () => {
-      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue(undefined);
       vi.mocked(prisma.purchase.findMany).mockResolvedValue([]);
 
       await expect(usersService.findOne(999)).rejects.toThrow(NotFoundException);
