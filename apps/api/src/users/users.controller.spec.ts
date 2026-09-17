@@ -28,13 +28,13 @@ describe('UsersController', () => {
       const result = { data: [{ id: 1 }] as MobileUser[], total: 1 };
       vi.mocked(usersService.findAll).mockResolvedValue(result);
 
-      await expect(usersController.findAll(1, 20)).resolves.toBe(result);
+      await expect(usersController.findAll({ page: 1, pageSize: 20 })).resolves.toBe(result);
     });
 
     it('passes the requested page and pageSize through to the service', async () => {
       vi.mocked(usersService.findAll).mockResolvedValue({ data: [], total: 0 });
 
-      await usersController.findAll(2, 5);
+      await usersController.findAll({ page: 2, pageSize: 5 });
 
       expect(usersService.findAll).toHaveBeenCalledWith(2, 5, undefined);
     });
@@ -42,7 +42,7 @@ describe('UsersController', () => {
     it('passes the search term through to the service', async () => {
       vi.mocked(usersService.findAll).mockResolvedValue({ data: [], total: 0 });
 
-      await usersController.findAll(1, 20, 'jane');
+      await usersController.findAll({ page: 1, pageSize: 20, search: 'jane' });
 
       expect(usersService.findAll).toHaveBeenCalledWith(1, 20, 'jane');
     });
