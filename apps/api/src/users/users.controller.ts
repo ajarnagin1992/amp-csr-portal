@@ -10,7 +10,8 @@ export class UsersController {
   findAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
+    @Query('search') search?: string,
   ): Promise<{ data: MobileUser[]; total: number }> {
-    return this.usersService.findAll(page, pageSize);
+    return this.usersService.findAll(page, pageSize, search);
   }
 }

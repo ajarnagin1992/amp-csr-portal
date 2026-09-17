@@ -6,11 +6,12 @@ import type { MobileUser } from '../generated/prisma/client.js';
 describe('UsersController', () => {
   let usersController: UsersController;
   let usersService: {
-    findAll: (page: number, pageSize: number) => Promise<{ data: MobileUser[]; total: number }>;
+    findAll: (page: number, pageSize: number, search?: string) => Promise<{ data: MobileUser[]; total: number }>;
+    findOne: (id: number) => Promise<unknown>;
   };
 
   beforeEach(async () => {
-    usersService = { findAll: vi.fn() };
+    usersService = { findAll: vi.fn(), findOne: vi.fn() };
 
     const app: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
@@ -33,7 +34,32 @@ describe('UsersController', () => {
 
       await usersController.findAll(2, 5);
 
-      expect(usersService.findAll).toHaveBeenCalledWith(2, 5);
+      expect(usersService.findAll).toHaveBeenCalledWith(2, 5, undefined);
+    });
+
+    it('passes the search term through to the service', async () => {
+      vi.mocked(usersService.findAll).mockResolvedValue({ data: [], total: 0 });
+
+      await usersController.findAll(1, 20, 'jane');
+
+      expect(usersService.findAll).toHaveBeenCalledWith(1, 20, 'jane');
+    });
+  });
+
+  describe('findOne', () => {
+    it('returns the user detail from the service', async () => {
+      const detail = { id: 1, vehicles: [], purchases: [] };
+      vi.mocked(usersService.findOne).mockResolvedValue(detail);
+
+      await expect(usersController.findOne(1)).resolves.toBe(detail);
+    });
+
+    it('looks up the user by the id route param', async () => {
+      vi.mocked(usersService.findOne).mockResolvedValue({ id: 1, vehicles: [], purchases: [] });
+
+      await usersController.findOne(1);
+
+      expect(usersService.findOne).toHaveBeenCalledWith(1);
     });
   });
 });
