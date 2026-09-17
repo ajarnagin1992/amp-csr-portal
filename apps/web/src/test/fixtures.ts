@@ -1,4 +1,4 @@
-import type { ListUsersResponseDto, MobileUserDto } from "@amp-csr/shared";
+import type { ListUsersResponseDto, MobileUserDto, UserDetailDto, VehicleDto } from "@amp-csr/shared";
 
 export const validUser: MobileUserDto = {
   id: 1,
@@ -15,4 +15,18 @@ export const validUser: MobileUserDto = {
 export const pagedUsersResponse: ListUsersResponseDto = {
   data: [validUser],
   total: 45,
+};
+
+export const validVehicle: VehicleDto = {
+  id: 1,
+  licensePlate: 'ABC123',
+  state: 'CA',
+  make: 'Toyota',
+  model: 'Corolla',
+  year: 2020,
+};
+
+export const validUserDetail: UserDetailDto = {
+  ...validUser,
+  vehicles: [validVehicle],
 };

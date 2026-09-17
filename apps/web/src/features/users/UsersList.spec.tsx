@@ -71,6 +71,28 @@ describe('UsersList', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument());
     await userEvent.click(screen.getByRole('button', { name: '2' }));
 
-    await waitFor(() => expect(getUsers).toHaveBeenCalledWith({ page: 2, pageSize: 20 }));
+    await waitFor(() => expect(getUsers).toHaveBeenCalledWith({ page: 2, pageSize: 20, search: undefined }));
+  });
+
+  it('links each user to their properties page', async () => {
+    vi.mocked(getUsers).mockResolvedValue({ data: [validUser], total: 1 });
+
+    renderWithQueryClient(<UsersList />);
+
+    await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+    expect(screen.getByRole('link', { name: 'Jane Doe' })).toHaveAttribute('href', '/users/1');
+  });
+
+  it('searches by the entered term and resets to the first page', async () => {
+    vi.mocked(getUsers).mockResolvedValue({ data: [validUser], total: 1 });
+
+    renderWithQueryClient(<UsersList />);
+
+    await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+    await userEvent.type(screen.getByLabelText(/search/i), 'jane');
+
+    await waitFor(() =>
+      expect(getUsers).toHaveBeenCalledWith({ page: 1, pageSize: 20, search: 'jane' }),
+    );
   });
 });
