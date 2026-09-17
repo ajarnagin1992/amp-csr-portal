@@ -35,7 +35,9 @@ export class UsersService {
         include: {
           vehicles: {
             include: {
-              subscription: {
+              subscriptions: {
+                orderBy: { createdAt: 'desc' },
+                take: 1,
                 include: { plan: true },
               },
             },
@@ -52,7 +54,12 @@ export class UsersService {
       throw new NotFoundException(`User ${id} not found`);
     }
 
-    return { ...user, purchases };
+    const vehicles = user.vehicles.map(({ subscriptions, ...vehicle }) => ({
+      ...vehicle,
+      subscription: subscriptions[0],
+    }));
+
+    return { ...user, vehicles, purchases };
   }
 
   async update(id: number, data: UpdateUserDto): Promise<MobileUser> {

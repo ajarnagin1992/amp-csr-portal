@@ -11,7 +11,7 @@ describe('UsersService', () => {
     mobileUser: {
       findMany: (args: { where?: object; skip: number; take: number }) => Promise<MobileUser[]>;
       count: (args?: { where?: object }) => Promise<number>;
-      findUnique: (args: { where: { id: number }; include?: object }) => Promise<unknown>;
+      findUnique: (args: { where: { id: number }; include?: Prisma.MobileUserInclude }) => Promise<unknown>;
       update: (args: { where: { id: number }; data: UpdateUserDto }) => Promise<MobileUser>;
     };
     purchase: {
@@ -82,16 +82,15 @@ describe('UsersService', () => {
 
         await usersService.findAll(1, 20, 'jane');
 
+        const conditions: Prisma.MobileUserWhereInput[] = [
+          { firstName: { contains: 'jane', mode: 'insensitive' } },
+          { lastName: { contains: 'jane', mode: 'insensitive' } },
+          { email: { contains: 'jane', mode: 'insensitive' } },
+          { phone: { contains: 'jane', mode: 'insensitive' } },
+        ];
         expect(prisma.mobileUser.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
-            where: expect.objectContaining({
-              OR: expect.arrayContaining([
-                { firstName: { contains: 'jane', mode: 'insensitive' } },
-                { lastName: { contains: 'jane', mode: 'insensitive' } },
-                { email: { contains: 'jane', mode: 'insensitive' } },
-                { phone: { contains: 'jane', mode: 'insensitive' } },
-              ]),
-            }),
+            where: expect.objectContaining({ OR: expect.arrayContaining(conditions) }),
           }),
         );
       });
@@ -102,13 +101,12 @@ describe('UsersService', () => {
 
         await usersService.findAll(1, 20, 'abc123');
 
+        const conditions: Prisma.MobileUserWhereInput[] = [
+          { vehicles: { some: { licensePlate: { contains: 'abc123', mode: 'insensitive' } } } },
+        ];
         expect(prisma.mobileUser.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
-            where: expect.objectContaining({
-              OR: expect.arrayContaining([
-                { vehicles: { some: { licensePlate: { contains: 'abc123', mode: 'insensitive' } } } },
-              ]),
-            }),
+            where: expect.objectContaining({ OR: expect.arrayContaining(conditions) }),
           }),
         );
       });
@@ -128,11 +126,10 @@ describe('UsersService', () => {
 
         await usersService.findAll(1, 20, 'jane');
 
+        const conditions: Prisma.MobileUserWhereInput[] = [{ firstName: { contains: 'jane', mode: 'insensitive' } }];
         expect(prisma.mobileUser.count).toHaveBeenCalledWith(
           expect.objectContaining({
-            where: expect.objectContaining({
-              OR: expect.arrayContaining([{ firstName: { contains: 'jane', mode: 'insensitive' } }]),
-            }),
+            where: expect.objectContaining({ OR: expect.arrayContaining(conditions) }),
           }),
         );
       });
@@ -165,18 +162,39 @@ describe('UsersService', () => {
 
       await usersService.findOne(1);
 
-      expect(prisma.mobileUser.findUnique).toHaveBeenCalledWith({
-        where: { id: 1 },
-        include: {
-          vehicles: {
-            include: {
-              subscription: {
-                include: { plan: true },
-              },
+      const include: Prisma.MobileUserInclude = {
+        vehicles: {
+          include: {
+            subscriptions: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              include: { plan: true },
             },
           },
         },
-      });
+      };
+      expect(prisma.mobileUser.findUnique).toHaveBeenCalledWith({ where: { id: 1 }, include });
+    });
+
+    it("exposes each vehicle's most recent subscription as a single object, not an array", async () => {
+      const subscription = { id: 5, status: 'ACTIVE' };
+      const user = { id: 1, vehicles: [{ id: 10, subscriptions: [subscription] }] };
+      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue(user);
+      vi.mocked(prisma.purchase.findMany).mockResolvedValue([]);
+
+      const result = await usersService.findOne(1);
+
+      expect(result.vehicles).toEqual([{ id: 10, subscription }]);
+    });
+
+    it('exposes undefined when a vehicle has no subscription history', async () => {
+      const user = { id: 1, vehicles: [{ id: 10, subscriptions: [] }] };
+      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue(user);
+      vi.mocked(prisma.purchase.findMany).mockResolvedValue([]);
+
+      const result = await usersService.findOne(1);
+
+      expect(result.vehicles).toEqual([{ id: 10, subscription: undefined }]);
     });
 
     it('fetches the purchase history for that user, most recent first', async () => {
@@ -185,10 +203,11 @@ describe('UsersService', () => {
 
       await usersService.findOne(1);
 
-      expect(prisma.purchase.findMany).toHaveBeenCalledWith({
+      const args: Prisma.PurchaseFindManyArgs = {
         where: { mobileUserId: 1 },
         orderBy: { createdAt: 'desc' },
-      });
+      };
+      expect(prisma.purchase.findMany).toHaveBeenCalledWith(args);
     });
 
     it('throws NotFoundException when no user exists with that id', async () => {
@@ -212,7 +231,8 @@ describe('UsersService', () => {
 
       await usersService.update(1, { firstName: 'Jane' });
 
-      expect(prisma.mobileUser.update).toHaveBeenCalledWith({ where: { id: 1 }, data: { firstName: 'Jane' } });
+      const data: Prisma.MobileUserUpdateInput = { firstName: 'Jane' };
+      expect(prisma.mobileUser.update).toHaveBeenCalledWith({ where: { id: 1 }, data });
     });
 
     it('throws NotFoundException when the user does not exist', async () => {
