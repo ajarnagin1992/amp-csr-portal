@@ -48,9 +48,9 @@ erDiagram
 	}
 	SUBSCRIPTIONS{
 		int id PK
-		int vehicle_id FK "UNIQUE"
+		int vehicle_id FK
         int plan_id FK
-        enum status "ACTIVE | OVERDUE | CANCELLED"
+        enum status "ACTIVE | OVERDUE | CANCELLED | TRANSFERRED"
         datetime next_billing_date
         datetime created_at
         datetime last_updated
@@ -58,7 +58,7 @@ erDiagram
 	
 	MOBILE_USERS ||--o{ VEHICLES : "owns"
 	MOBILE_USERS ||--o{ PURCHASES : "makes"
-	VEHICLES ||--o| SUBSCRIPTIONS : "subscribed to"
+	VEHICLES ||--o{ SUBSCRIPTIONS : "subscribed to"
     PLANS ||--o{ SUBSCRIPTIONS : "tier of"
     VEHICLES ||--o{ PURCHASES : "charged for"
 ```
