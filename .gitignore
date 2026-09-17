@@ -4,6 +4,10 @@ coverage/
 .env
 .env.*
 !.env.example
+
 # Cloudflare related
 .wrangler/
 .dev.vars
+
+# Prisma generated client
+apps/api/src/generated/prisma/

@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CsrUserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum MobileUserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum PlanStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum PurchaseType {
+  SUBSCRIPTION
+  SINGLE_WASH
+}
+
+enum PurchaseStatus {
+  SUCCESS
+  FAILURE
+  REFUNDED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  OVERDUE
+  CANCELLED
+}
+
+model CsrUser {
+  id           Int           @id @default(autoincrement())
+  username     String
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  status       CsrUserStatus @default(ACTIVE)
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  @@map("csr_users")
+}
+
+model MobileUser {
+  id          Int              @id @default(autoincrement())
+  firstName   String           @map("first_name")
+  lastName    String           @map("last_name")
+  email       String           @unique
+  phone       String
+  status      MobileUserStatus @default(ACTIVE)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  lastUpdated DateTime         @updatedAt @map("last_updated")
+
+  vehicles  Vehicle[]
+  purchases Purchase[]
+
+  @@map("mobile_users")
+}
+
+model Vehicle {
+  id            Int      @id @default(autoincrement())
+  mobileUserId  Int      @map("mobile_user_id")
+  licensePlate  String   @map("license_plate")
+  state         String
+  make          String
+  model         String
+  year          Int
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  mobileUser   MobileUser    @relation(fields: [mobileUserId], references: [id])
+  purchases    Purchase[]
+  subscription Subscription?
+
+  @@map("vehicles")
+}
+
+model Plan {
+  id          Int        @id @default(autoincrement())
+  name        String
+  price       Int
+  status      PlanStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  lastUpdated DateTime   @updatedAt @map("last_updated")
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Purchase {
+  id           Int            @id @default(autoincrement())
+  mobileUserId Int            @map("mobile_user_id")
+  vehicleId    Int            @map("vehicle_id")
+  type         PurchaseType
+  status       PurchaseStatus
+  amount       Int
+  description  String
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  mobileUser MobileUser @relation(fields: [mobileUserId], references: [id])
+  vehicle    Vehicle    @relation(fields: [vehicleId], references: [id])
+
+  @@map("purchases")
+}
+
+model Subscription {
+  id              Int                @id @default(autoincrement())
+  vehicleId       Int                @unique @map("vehicle_id")
+  planId          Int                @map("plan_id")
+  status          SubscriptionStatus @default(ACTIVE)
+  nextBillingDate DateTime           @map("next_billing_date")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  lastUpdated     DateTime           @updatedAt @map("last_updated")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  plan    Plan    @relation(fields: [planId], references: [id])
+
+  @@map("subscriptions")
+}
