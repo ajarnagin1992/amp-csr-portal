@@ -6,7 +6,11 @@ import type { MobileUser } from '../generated/prisma/client.js';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll(): Promise<MobileUser[]> {
-    return this.prisma.mobileUser.findMany();
+  async findAll(page: number, pageSize: number): Promise<{ data: MobileUser[]; total: number }> {
+    const [data, total] = await Promise.all([
+      this.prisma.mobileUser.findMany({ skip: (page - 1) * pageSize, take: pageSize }),
+      this.prisma.mobileUser.count(),
+    ]);
+    return { data, total };
   }
 }
