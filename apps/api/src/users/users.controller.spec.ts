@@ -1,17 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller.js';
 import { UsersService } from './users.service.js';
-import type { MobileUser } from '../generated/prisma/client.js';
-import type { UpdateUserDto } from '@amp-csr/shared';
+import type { ListUsersResponseDto, MobileUserDto, UpdateUserDto, UserDetailDto } from '@amp-csr/shared';
+import { userDetailDto, userDto } from '../test/fixtures.js';
 
 describe('UsersController', () => {
   let usersController: UsersController;
   let usersService: {
-    findAll: (page: number, pageSize: number, search?: string) => Promise<{ data: MobileUser[]; total: number }>;
-    findOne: (id: number) => Promise<unknown>;
-    update: (id: number, dto: UpdateUserDto) => Promise<MobileUser>;
-    deactivate: (id: number) => Promise<MobileUser>;
-    reactivate: (id: number) => Promise<MobileUser>;
+    findAll: (page: number, pageSize: number, search?: string) => Promise<ListUsersResponseDto>;
+    findOne: (id: number) => Promise<UserDetailDto>;
+    update: (id: number, dto: UpdateUserDto) => Promise<MobileUserDto>;
+    deactivate: (id: number) => Promise<MobileUserDto>;
+    reactivate: (id: number) => Promise<MobileUserDto>;
   };
 
   beforeEach(async () => {
@@ -27,7 +27,7 @@ describe('UsersController', () => {
 
   describe('findAll', () => {
     it('returns the paginated result from the service', async () => {
-      const result = { data: [{ id: 1 }] as MobileUser[], total: 1 };
+      const result = { data: [userDto], total: 1 };
       vi.mocked(usersService.findAll).mockResolvedValue(result);
 
       await expect(usersController.findAll({ page: 1, pageSize: 20 })).resolves.toBe(result);
@@ -52,14 +52,13 @@ describe('UsersController', () => {
 
   describe('findOne', () => {
     it('returns the user detail from the service', async () => {
-      const detail = { id: 1, vehicles: [], purchases: [] };
-      vi.mocked(usersService.findOne).mockResolvedValue(detail);
+      vi.mocked(usersService.findOne).mockResolvedValue(userDetailDto);
 
-      await expect(usersController.findOne(1)).resolves.toBe(detail);
+      await expect(usersController.findOne(1)).resolves.toBe(userDetailDto);
     });
 
     it('looks up the user by the id route param', async () => {
-      vi.mocked(usersService.findOne).mockResolvedValue({ id: 1, vehicles: [], purchases: [] });
+      vi.mocked(usersService.findOne).mockResolvedValue(userDetailDto);
 
       await usersController.findOne(1);
 
@@ -69,14 +68,14 @@ describe('UsersController', () => {
 
   describe('update', () => {
     it('returns the updated user from the service', async () => {
-      const updated = { id: 1, firstName: 'Jane' } as MobileUser;
+      const updated = { ...userDto, firstName: 'Janet' };
       vi.mocked(usersService.update).mockResolvedValue(updated);
 
-      await expect(usersController.update(1, { firstName: 'Jane' })).resolves.toBe(updated);
+      await expect(usersController.update(1, { firstName: 'Janet' })).resolves.toBe(updated);
     });
 
     it('passes the id and the request body through to the service', async () => {
-      vi.mocked(usersService.update).mockResolvedValue({} as MobileUser);
+      vi.mocked(usersService.update).mockResolvedValue(userDto);
 
       await usersController.update(1, { firstName: 'Jane' });
 
@@ -86,14 +85,14 @@ describe('UsersController', () => {
 
   describe('deactivate', () => {
     it('returns the deactivated user from the service', async () => {
-      const deactivated = { id: 1, status: 'DISABLED' } as MobileUser;
+      const deactivated = { ...userDto, status: 'DISABLED' } as const;
       vi.mocked(usersService.deactivate).mockResolvedValue(deactivated);
 
       await expect(usersController.deactivate(1)).resolves.toBe(deactivated);
     });
 
     it('passes the id from the route through to the service', async () => {
-      vi.mocked(usersService.deactivate).mockResolvedValue({} as MobileUser);
+      vi.mocked(usersService.deactivate).mockResolvedValue(userDto);
 
       await usersController.deactivate(1);
 
@@ -104,14 +103,14 @@ describe('UsersController', () => {
 
   describe('reactivate', () => {
     it('returns the reactivated user from the service', async () => {
-      const reactivated = { id: 1, status: 'ACTIVE' } as MobileUser;
+      const reactivated = { ...userDto, status: 'ACTIVE' } as const;
       vi.mocked(usersService.reactivate).mockResolvedValue(reactivated);
 
       await expect(usersController.reactivate(1)).resolves.toBe(reactivated);
     });
 
     it('passes the id from the route through to the service', async () => {
-      vi.mocked(usersService.reactivate).mockResolvedValue({} as MobileUser);
+      vi.mocked(usersService.reactivate).mockResolvedValue(userDto);
 
       await usersController.reactivate(1);
 

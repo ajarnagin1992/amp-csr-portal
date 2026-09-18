@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PlansService } from './plans.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Plan, Prisma } from '../generated/prisma/client.js';
+import { planDto, planRow } from '../test/fixtures.js';
 
 describe('PlansService', () => {
   let plansService: PlansService;
@@ -24,11 +25,19 @@ describe('PlansService', () => {
   });
 
   describe('findActive', () => {
-    it('returns the plans from Prisma', async () => {
-      const plans = [{ id: 1 }, { id: 2 }] as Plan[];
-      vi.mocked(prisma.plan.findMany).mockResolvedValue(plans);
+    it('returns the plans from Prisma as PlanDtos', async () => {
+      vi.mocked(prisma.plan.findMany).mockResolvedValue([planRow]);
 
-      await expect(plansService.findActive()).resolves.toEqual(plans);
+      await expect(plansService.findActive()).resolves.toEqual([planDto]);
+    });
+
+    it('drops the columns that are not part of the plan contract', async () => {
+      vi.mocked(prisma.plan.findMany).mockResolvedValue([planRow]);
+
+      const [plan] = await plansService.findActive();
+
+      expect(plan).not.toHaveProperty('createdAt');
+      expect(plan).not.toHaveProperty('lastUpdated');
     });
 
     it('filters to ACTIVE plans only, ordered by name', async () => {

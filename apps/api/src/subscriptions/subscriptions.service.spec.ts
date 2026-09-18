@@ -3,6 +3,8 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import { SubscriptionsService } from './subscriptions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma, type Plan, type Subscription, type Vehicle } from '../generated/prisma/client.js';
+import type { SubscriptionWithPlan } from '../common/mappers/subscription.mapper.js';
+import { planRow, subscriptionDto, subscriptionRow } from '../test/fixtures.js';
 
 describe('SubscriptionsService', () => {
   let subscriptionsService: SubscriptionsService;
@@ -16,8 +18,8 @@ describe('SubscriptionsService', () => {
     subscription: {
       findFirst: (args: Prisma.SubscriptionFindFirstArgs) => Promise<Subscription | undefined>;
       findUnique: (args: Prisma.SubscriptionFindUniqueArgs) => Promise<unknown>;
-      create: (args: Prisma.SubscriptionCreateArgs) => Promise<Subscription>;
-      update: (args: Prisma.SubscriptionUpdateArgs) => Promise<Subscription>;
+      create: (args: Prisma.SubscriptionCreateArgs) => Promise<SubscriptionWithPlan>;
+      update: (args: Prisma.SubscriptionUpdateArgs) => Promise<SubscriptionWithPlan>;
     };
     $transaction: (ops: unknown[]) => Promise<unknown[]>;
   };
@@ -47,21 +49,31 @@ describe('SubscriptionsService', () => {
       vi.useRealTimers();
     });
 
-    it('creates and returns the new subscription', async () => {
-      const plan = { id: 5, status: 'ACTIVE' } as Plan;
-      const subscription = { id: 1, vehicleId: 10, planId: 5, status: 'ACTIVE' } as Subscription;
-      vi.mocked(prisma.plan.findUnique).mockResolvedValue(plan);
+    it('creates and returns the new subscription as a SubscriptionDto', async () => {
+      vi.mocked(prisma.plan.findUnique).mockResolvedValue(planRow);
       vi.mocked(prisma.subscription.findFirst).mockResolvedValue(undefined);
-      vi.mocked(prisma.subscription.create).mockResolvedValue(subscription);
+      vi.mocked(prisma.subscription.create).mockResolvedValue(subscriptionRow);
 
-      await expect(subscriptionsService.create(10, 5)).resolves.toEqual(subscription);
+      await expect(subscriptionsService.create(10, planRow.id)).resolves.toEqual(subscriptionDto);
+    });
+
+    it('drops the columns that are not part of the subscription contract', async () => {
+      vi.mocked(prisma.plan.findUnique).mockResolvedValue(planRow);
+      vi.mocked(prisma.subscription.findFirst).mockResolvedValue(undefined);
+      vi.mocked(prisma.subscription.create).mockResolvedValue(subscriptionRow);
+
+      const subscription = await subscriptionsService.create(10, planRow.id);
+
+      expect(subscription).not.toHaveProperty('vehicleId');
+      expect(subscription).not.toHaveProperty('planId');
+      expect(subscription).not.toHaveProperty('createdAt');
     });
 
     it('passes the vehicle, plan, ACTIVE status, and a one-month-out billing date to Prisma', async () => {
-      const plan = { id: 5, status: 'ACTIVE' } as Plan;
+      const plan = { ...planRow, id: 5 };
       vi.mocked(prisma.plan.findUnique).mockResolvedValue(plan);
       vi.mocked(prisma.subscription.findFirst).mockResolvedValue(undefined);
-      vi.mocked(prisma.subscription.create).mockResolvedValue({} as Subscription);
+      vi.mocked(prisma.subscription.create).mockResolvedValue(subscriptionRow);
 
       await subscriptionsService.create(10, 5);
 
@@ -71,27 +83,25 @@ describe('SubscriptionsService', () => {
         status: 'ACTIVE',
         nextBillingDate: new Date('2026-02-01T00:00:00.000Z'),
       };
-      expect(prisma.subscription.create).toHaveBeenCalledWith({ data });
+      expect(prisma.subscription.create).toHaveBeenCalledWith({ data, include: { plan: true } });
     });
 
     it('fetches the plan before creating the subscription', async () => {
-      const plan = { id: 5, status: 'ACTIVE' } as Plan;
-      vi.mocked(prisma.plan.findUnique).mockResolvedValue(plan);
+      vi.mocked(prisma.plan.findUnique).mockResolvedValue({ ...planRow, id: 5 });
       vi.mocked(prisma.subscription.findFirst).mockResolvedValue(undefined);
-      vi.mocked(prisma.subscription.create).mockResolvedValue({} as Subscription);
+      vi.mocked(prisma.subscription.create).mockResolvedValue(subscriptionRow);
 
       await subscriptionsService.create(10, 5);
 
       expect(prisma.plan.findUnique).toHaveBeenCalledWith({ where: { id: 5 } });
     });
 
-    it("checks the vehicle's current subscription before creating", async () => {
-      const plan = { id: 5, status: 'ACTIVE' } as Plan;
-      vi.mocked(prisma.plan.findUnique).mockResolvedValue(plan);
+    it('checks the current subscription of the vehicle before creating', async () => {
+      vi.mocked(prisma.plan.findUnique).mockResolvedValue(planRow);
       vi.mocked(prisma.subscription.findFirst).mockResolvedValue(undefined);
-      vi.mocked(prisma.subscription.create).mockResolvedValue({} as Subscription);
+      vi.mocked(prisma.subscription.create).mockResolvedValue(subscriptionRow);
 
-      await subscriptionsService.create(10, 5);
+      await subscriptionsService.create(10, planRow.id);
 
       expect(prisma.subscription.findFirst).toHaveBeenCalledWith({
         where: { vehicleId: 10 },
@@ -106,24 +116,20 @@ describe('SubscriptionsService', () => {
     });
 
     it('throws BadRequestException when the plan is disabled', async () => {
-      const plan = { id: 5, status: 'DISABLED' } as Plan;
-      vi.mocked(prisma.plan.findUnique).mockResolvedValue(plan);
+      vi.mocked(prisma.plan.findUnique).mockResolvedValue({ ...planRow, status: 'DISABLED' });
 
-      await expect(subscriptionsService.create(10, 5)).rejects.toThrow(BadRequestException);
+      await expect(subscriptionsService.create(10, planRow.id)).rejects.toThrow(BadRequestException);
     });
 
     it('throws ConflictException when the vehicle already has an active subscription', async () => {
-      const plan = { id: 5, status: 'ACTIVE' } as Plan;
-      const existing = { id: 2, status: 'ACTIVE' } as Subscription;
-      vi.mocked(prisma.plan.findUnique).mockResolvedValue(plan);
-      vi.mocked(prisma.subscription.findFirst).mockResolvedValue(existing);
+      vi.mocked(prisma.plan.findUnique).mockResolvedValue(planRow);
+      vi.mocked(prisma.subscription.findFirst).mockResolvedValue({ ...subscriptionRow, id: 2, status: 'ACTIVE' });
 
-      await expect(subscriptionsService.create(10, 5)).rejects.toThrow(ConflictException);
+      await expect(subscriptionsService.create(10, planRow.id)).rejects.toThrow(ConflictException);
     });
 
     it('throws NotFoundException when the vehicle does not exist', async () => {
-      const plan = { id: 5, status: 'ACTIVE' } as Plan;
-      vi.mocked(prisma.plan.findUnique).mockResolvedValue(plan);
+      vi.mocked(prisma.plan.findUnique).mockResolvedValue(planRow);
       vi.mocked(prisma.subscription.findFirst).mockResolvedValue(undefined);
       vi.mocked(prisma.subscription.create).mockRejectedValue(
         new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', {
@@ -132,47 +138,55 @@ describe('SubscriptionsService', () => {
         }),
       );
 
-      await expect(subscriptionsService.create(999, 5)).rejects.toThrow(NotFoundException);
+      await expect(subscriptionsService.create(999, planRow.id)).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('cancel', () => {
-    it('cancels the subscription and returns it', async () => {
-      const cancelled = { id: 1, status: 'CANCELLED' } as Subscription;
-      vi.mocked(prisma.subscription.findUnique).mockResolvedValue({ id: 1, status: 'ACTIVE' });
-      vi.mocked(prisma.subscription.update).mockResolvedValue(cancelled);
+    it('cancels the subscription and returns it as a SubscriptionDto', async () => {
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue(subscriptionRow);
+      vi.mocked(prisma.subscription.update).mockResolvedValue({ ...subscriptionRow, status: 'CANCELLED' });
 
-      await expect(subscriptionsService.cancel(1)).resolves.toEqual(cancelled);
+      await expect(subscriptionsService.cancel(1)).resolves.toEqual({ ...subscriptionDto, status: 'CANCELLED' });
     });
 
-    it('passes the id and CANCELLED status to Prisma', async () => {
-      vi.mocked(prisma.subscription.findUnique).mockResolvedValue({ id: 1, status: 'ACTIVE' });
-      vi.mocked(prisma.subscription.update).mockResolvedValue({} as Subscription);
+    it('passes the id and CANCELLED status to Prisma, including the plan the contract needs', async () => {
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue(subscriptionRow);
+      vi.mocked(prisma.subscription.update).mockResolvedValue({ ...subscriptionRow, status: 'CANCELLED' });
 
       await subscriptionsService.cancel(1);
 
       expect(prisma.subscription.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: { status: 'CANCELLED' },
+        include: { plan: true },
       });
     });
 
+    it('looks the subscription up with its plan', async () => {
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue(subscriptionRow);
+      vi.mocked(prisma.subscription.update).mockResolvedValue({ ...subscriptionRow, status: 'CANCELLED' });
+
+      await subscriptionsService.cancel(1);
+
+      expect(prisma.subscription.findUnique).toHaveBeenCalledWith({ where: { id: 1 }, include: { plan: true } });
+    });
+
     it('throws NotFoundException when the subscription does not exist', async () => {
-      vi.mocked(prisma.subscription.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue(undefined);
 
       await expect(subscriptionsService.cancel(999)).rejects.toThrow(NotFoundException);
     });
 
     it('is a no-op that returns the subscription when it is already CANCELLED', async () => {
-      const alreadyCancelled = { id: 1, status: 'CANCELLED' } as Subscription;
-      vi.mocked(prisma.subscription.findUnique).mockResolvedValue(alreadyCancelled);
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue({ ...subscriptionRow, status: 'CANCELLED' });
 
-      await expect(subscriptionsService.cancel(1)).resolves.toEqual(alreadyCancelled);
+      await expect(subscriptionsService.cancel(1)).resolves.toEqual({ ...subscriptionDto, status: 'CANCELLED' });
       expect(prisma.subscription.update).not.toHaveBeenCalled();
     });
 
     it('throws ConflictException when the subscription has been TRANSFERRED', async () => {
-      vi.mocked(prisma.subscription.findUnique).mockResolvedValue({ id: 1, status: 'TRANSFERRED' });
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue({ ...subscriptionRow, status: 'TRANSFERRED' });
 
       await expect(subscriptionsService.cancel(1)).rejects.toThrow(ConflictException);
       expect(prisma.subscription.update).not.toHaveBeenCalled();
@@ -181,30 +195,32 @@ describe('SubscriptionsService', () => {
 
   describe('transfer', () => {
     const subscription = {
+      ...subscriptionRow,
       id: 1,
       planId: 5,
       vehicleId: 10,
-      nextBillingDate: new Date('2026-02-01T00:00:00.000Z'),
       vehicle: { id: 10, mobileUserId: 100 },
     };
     const targetVehicle = { id: 20, mobileUserId: 100 } as Vehicle;
 
-    it('marks the old subscription TRANSFERRED and creates a new ACTIVE one on the target vehicle', async () => {
-      const transferredOld = { id: 1, status: 'TRANSFERRED' } as Subscription;
-      const newSubscription = { id: 2, vehicleId: 20, planId: 5, status: 'ACTIVE' } as Subscription;
+    it('marks the old subscription TRANSFERRED and returns the new one as a SubscriptionDto', async () => {
+      const newSubscription = { ...subscriptionRow, id: 2, vehicleId: 20, planId: 5 };
       vi.mocked(prisma.subscription.findUnique).mockResolvedValue(subscription);
       vi.mocked(prisma.vehicle.findUnique).mockResolvedValue(targetVehicle);
       vi.mocked(prisma.subscription.findFirst).mockResolvedValue(undefined);
-      vi.mocked(prisma.$transaction).mockResolvedValue([transferredOld, newSubscription]);
+      vi.mocked(prisma.$transaction).mockResolvedValue([
+        { ...subscriptionRow, status: 'TRANSFERRED' },
+        newSubscription,
+      ]);
 
-      await expect(subscriptionsService.transfer(1, 20)).resolves.toEqual(newSubscription);
+      await expect(subscriptionsService.transfer(1, 20)).resolves.toEqual({ ...subscriptionDto, id: 2 });
     });
 
     it('carries over the same plan and billing date to the new subscription, and marks the old one TRANSFERRED', async () => {
       vi.mocked(prisma.subscription.findUnique).mockResolvedValue(subscription);
       vi.mocked(prisma.vehicle.findUnique).mockResolvedValue(targetVehicle);
       vi.mocked(prisma.subscription.findFirst).mockResolvedValue(undefined);
-      vi.mocked(prisma.$transaction).mockResolvedValue([{} as Subscription, {} as Subscription]);
+      vi.mocked(prisma.$transaction).mockResolvedValue([subscriptionRow, subscriptionRow]);
 
       await subscriptionsService.transfer(1, 20);
 
@@ -219,6 +235,7 @@ describe('SubscriptionsService', () => {
           status: 'ACTIVE',
           nextBillingDate: subscription.nextBillingDate,
         },
+        include: { plan: true },
       });
     });
 
@@ -243,10 +260,9 @@ describe('SubscriptionsService', () => {
     });
 
     it('throws ConflictException when the target vehicle already has an active subscription', async () => {
-      const existing = { id: 3, status: 'ACTIVE' } as Subscription;
       vi.mocked(prisma.subscription.findUnique).mockResolvedValue(subscription);
       vi.mocked(prisma.vehicle.findUnique).mockResolvedValue(targetVehicle);
-      vi.mocked(prisma.subscription.findFirst).mockResolvedValue(existing);
+      vi.mocked(prisma.subscription.findFirst).mockResolvedValue({ ...subscriptionRow, id: 3, status: 'ACTIVE' });
 
       await expect(subscriptionsService.transfer(1, 20)).rejects.toThrow(ConflictException);
     });

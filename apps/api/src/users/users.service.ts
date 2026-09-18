@@ -1,15 +1,16 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { Prisma, type MobileUser } from '../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
 import { PRISMA_ERROR_CODE } from '../common/constants/prisma-error-codes.js';
 import { TERMINAL_STATUSES_SUBSCRIPTION } from '../common/constants/terminal-statuses.js';
-import type { UpdateUserDto } from '@amp-csr/shared';
+import type { ListUsersResponseDto, MobileUserDto, UpdateUserDto, UserDetailDto } from '@amp-csr/shared';
+import { toMobileUserDto, toUserDetailDto } from '../common/mappers/mobile-user.mapper.js';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(page: number, pageSize: number, search?: string): Promise<{ data: MobileUser[]; total: number }> {
+  async findAll(page: number, pageSize: number, search?: string): Promise<ListUsersResponseDto> {
     const where = search
       ? {
           OR: [
@@ -26,10 +27,10 @@ export class UsersService {
       this.prisma.mobileUser.findMany({ where, skip: (page - 1) * pageSize, take: pageSize }),
       this.prisma.mobileUser.count({ where }),
     ]);
-    return { data, total };
+    return { data: data.map(toMobileUserDto), total };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number): Promise<UserDetailDto> {
     const [user, purchases] = await Promise.all([
       this.prisma.mobileUser.findUnique({
         where: { id },
@@ -61,12 +62,12 @@ export class UsersService {
       subscription: subscriptions[0],
     }));
 
-    return { ...user, vehicles, purchases };
+    return toUserDetailDto({ ...user, vehicles, purchases });
   }
 
-  async update(id: number, data: UpdateUserDto): Promise<MobileUser> {
+  async update(id: number, data: UpdateUserDto): Promise<MobileUserDto> {
     try {
-      return await this.prisma.mobileUser.update({ where: { id }, data });
+      return toMobileUserDto(await this.prisma.mobileUser.update({ where: { id }, data }));
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_ERROR_CODE.RECORD_NOT_FOUND) {
         throw new NotFoundException(`User ${id} not found`);
@@ -82,7 +83,7 @@ export class UsersService {
   }
 
   // Deactivates the account and cancels every non-terminal subscription on the user's vehicles.
-  async deactivate(id: number): Promise<MobileUser> {
+  async deactivate(id: number): Promise<MobileUserDto> {
     try {
       const [, user] = await this.prisma.$transaction([
         this.prisma.subscription.updateMany({
@@ -94,7 +95,7 @@ export class UsersService {
         }),
         this.prisma.mobileUser.update({ where: { id }, data: { status: 'DISABLED' } }),
       ]);
-      return user;
+      return toMobileUserDto(user);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_ERROR_CODE.RECORD_NOT_FOUND) {
         throw new NotFoundException(`User ${id} not found`);
@@ -103,9 +104,9 @@ export class UsersService {
     }
   }
 
-  async reactivate(id: number): Promise<MobileUser> {
+  async reactivate(id: number): Promise<MobileUserDto> {
     try {
-      return await this.prisma.mobileUser.update({ where: { id }, data: { status: 'ACTIVE' } });
+      return toMobileUserDto(await this.prisma.mobileUser.update({ where: { id }, data: { status: 'ACTIVE' } }));
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_ERROR_CODE.RECORD_NOT_FOUND) {
         throw new NotFoundException(`User ${id} not found`);

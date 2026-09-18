@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { Plan } from '../generated/prisma/client.js';
+import type { PlanDto } from '@amp-csr/shared';
+import { toPlanDto } from '../common/mappers/plan.mapper.js';
 
 @Injectable()
 export class PlansService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findActive(): Promise<Plan[]> {
-    return this.prisma.plan.findMany({ where: { status: 'ACTIVE' }, orderBy: { name: 'asc' } });
+  async findActive(): Promise<PlanDto[]> {
+    const plans = await this.prisma.plan.findMany({ where: { status: 'ACTIVE' }, orderBy: { name: 'asc' } });
+    return plans.map(toPlanDto);
   }
 }

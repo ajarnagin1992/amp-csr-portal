@@ -2,9 +2,20 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { Prisma, type MobileUser, type Purchase } from '../generated/prisma/client.js';
+import { Prisma, type MobileUser } from '../generated/prisma/client.js';
 import { TERMINAL_STATUSES_SUBSCRIPTION } from '../common/constants/terminal-statuses.js';
 import type { UpdateUserDto } from '@amp-csr/shared';
+import type { PurchaseWithVehicle } from '../common/mappers/purchase.mapper.js';
+import {
+  purchaseDto,
+  purchaseRow,
+  userDetailDto,
+  userDetailQueryRow,
+  userDto,
+  userRow,
+  vehicleDto,
+  vehicleRow,
+} from '../test/fixtures.js';
 
 describe('UsersService', () => {
   let usersService: UsersService;
@@ -20,7 +31,7 @@ describe('UsersService', () => {
         where: { mobileUserId: number };
         orderBy?: object;
         include?: Prisma.PurchaseInclude;
-      }) => Promise<Purchase[]>;
+      }) => Promise<PurchaseWithVehicle[]>;
     };
     subscription: {
       updateMany: (args: Prisma.SubscriptionUpdateManyArgs) => Promise<Prisma.BatchPayload>;
@@ -53,12 +64,11 @@ describe('UsersService', () => {
   });
 
   describe('findAll', () => {
-    it('returns the page of users alongside the total count', async () => {
-      const users = [{ id: 1 }, { id: 2 }] as MobileUser[];
-      vi.mocked(prisma.mobileUser.findMany).mockResolvedValue(users);
+    it('returns the page of users as MobileUserDtos alongside the total count', async () => {
+      vi.mocked(prisma.mobileUser.findMany).mockResolvedValue([userRow]);
       vi.mocked(prisma.mobileUser.count).mockResolvedValue(42);
 
-      await expect(usersService.findAll(1, 20)).resolves.toEqual({ data: users, total: 42 });
+      await expect(usersService.findAll(1, 20)).resolves.toEqual({ data: [userDto], total: 42 });
     });
 
     it('converts page/pageSize into the correct skip/take', async () => {
@@ -160,17 +170,15 @@ describe('UsersService', () => {
   });
 
   describe('findOne', () => {
-    it('returns the user merged with their purchase history', async () => {
-      const user = { id: 1, firstName: 'Jane', vehicles: [] } as unknown as MobileUser & { vehicles: unknown[] };
-      const purchases = [{ id: 10 }, { id: 11 }] as Purchase[];
-      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue(user);
-      vi.mocked(prisma.purchase.findMany).mockResolvedValue(purchases);
+    it('returns the user merged with their purchase history as a UserDetailDto', async () => {
+      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue(userDetailQueryRow);
+      vi.mocked(prisma.purchase.findMany).mockResolvedValue([purchaseRow]);
 
-      await expect(usersService.findOne(1)).resolves.toEqual({ ...user, purchases });
+      await expect(usersService.findOne(1)).resolves.toEqual(userDetailDto);
     });
 
     it('looks up the user by id, including their vehicles, subscription, and plan', async () => {
-      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue({ id: 1, vehicles: [] });
+      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue({ ...userRow, vehicles: [] });
       vi.mocked(prisma.purchase.findMany).mockResolvedValue([]);
 
       await usersService.findOne(1);
@@ -189,29 +197,38 @@ describe('UsersService', () => {
       expect(prisma.mobileUser.findUnique).toHaveBeenCalledWith({ where: { id: 1 }, include });
     });
 
-    it("exposes each vehicle's most recent subscription as a single object, not an array", async () => {
-      const subscription = { id: 5, status: 'ACTIVE' };
-      const user = { id: 1, vehicles: [{ id: 10, subscriptions: [subscription] }] };
-      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue(user);
+    it('exposes the most recent subscription of each vehicle as a single object, not an array', async () => {
+      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue(userDetailQueryRow);
       vi.mocked(prisma.purchase.findMany).mockResolvedValue([]);
 
       const result = await usersService.findOne(1);
 
-      expect(result.vehicles).toEqual([{ id: 10, subscription }]);
+      expect(result.vehicles).toEqual([vehicleDto]);
     });
 
     it('exposes undefined when a vehicle has no subscription history', async () => {
-      const user = { id: 1, vehicles: [{ id: 10, subscriptions: [] }] };
-      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue(user);
+      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue({
+        ...userRow,
+        vehicles: [{ ...vehicleRow, subscriptions: [] }],
+      });
       vi.mocked(prisma.purchase.findMany).mockResolvedValue([]);
 
       const result = await usersService.findOne(1);
 
-      expect(result.vehicles).toEqual([{ id: 10, subscription: undefined }]);
+      expect(result.vehicles).toEqual([{ ...vehicleDto, subscription: undefined }]);
+    });
+
+    it('maps the purchase history onto the purchase contract', async () => {
+      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue({ ...userRow, vehicles: [] });
+      vi.mocked(prisma.purchase.findMany).mockResolvedValue([purchaseRow]);
+
+      const result = await usersService.findOne(1);
+
+      expect(result.purchases).toEqual([purchaseDto]);
     });
 
     it('fetches the purchase history for that user, most recent first, including the vehicle license plate', async () => {
-      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue({ id: 1, vehicles: [] });
+      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue({ ...userRow, vehicles: [] });
       vi.mocked(prisma.purchase.findMany).mockResolvedValue([]);
 
       await usersService.findOne(1);
@@ -233,15 +250,17 @@ describe('UsersService', () => {
   });
 
   describe('update', () => {
-    it('updates the user and returns the updated record', async () => {
-      const updated = { id: 1, firstName: 'Jane' } as MobileUser;
-      vi.mocked(prisma.mobileUser.update).mockResolvedValue(updated);
+    it('updates the user and returns the updated record as a MobileUserDto', async () => {
+      vi.mocked(prisma.mobileUser.update).mockResolvedValue({ ...userRow, firstName: 'Janet' });
 
-      await expect(usersService.update(1, { firstName: 'Jane' })).resolves.toEqual(updated);
+      await expect(usersService.update(1, { firstName: 'Janet' })).resolves.toEqual({
+        ...userDto,
+        firstName: 'Janet',
+      });
     });
 
     it('passes the id and the partial data to Prisma', async () => {
-      vi.mocked(prisma.mobileUser.update).mockResolvedValue({} as MobileUser);
+      vi.mocked(prisma.mobileUser.update).mockResolvedValue(userRow);
 
       await usersService.update(1, { firstName: 'Jane' });
 
@@ -276,7 +295,7 @@ describe('UsersService', () => {
     });
 
     it('never touches subscriptions, since status is not an editable profile field', async () => {
-      vi.mocked(prisma.mobileUser.update).mockResolvedValue({} as MobileUser);
+      vi.mocked(prisma.mobileUser.update).mockResolvedValue(userRow);
 
       await usersService.update(1, { firstName: 'Jane' });
 
@@ -286,8 +305,8 @@ describe('UsersService', () => {
   });
 
   describe('deactivate', () => {
-    it("cancels every non-terminal subscription on the user's vehicles", async () => {
-      vi.mocked(prisma.$transaction).mockResolvedValue([{ count: 2 }, { id: 1, status: 'DISABLED' } as MobileUser]);
+    it('cancels every non-terminal subscription on the vehicles of the user', async () => {
+      vi.mocked(prisma.$transaction).mockResolvedValue([{ count: 2 }, { ...userRow, status: 'DISABLED' }]);
 
       await usersService.deactivate(1);
 
@@ -298,18 +317,17 @@ describe('UsersService', () => {
     });
 
     it('updates the user status alongside the subscription cancellation', async () => {
-      vi.mocked(prisma.$transaction).mockResolvedValue([{ count: 0 }, { id: 1, status: 'DISABLED' } as MobileUser]);
+      vi.mocked(prisma.$transaction).mockResolvedValue([{ count: 0 }, { ...userRow, status: 'DISABLED' }]);
 
       await usersService.deactivate(1);
 
       expect(prisma.mobileUser.update).toHaveBeenCalledWith({ where: { id: 1 }, data: { status: 'DISABLED' } });
     });
 
-    it('returns the updated user record', async () => {
-      const updated = { id: 1, status: 'DISABLED' } as MobileUser;
-      vi.mocked(prisma.$transaction).mockResolvedValue([{ count: 0 }, updated]);
+    it('returns the updated user record as a MobileUserDto', async () => {
+      vi.mocked(prisma.$transaction).mockResolvedValue([{ count: 0 }, { ...userRow, status: 'DISABLED' }]);
 
-      await expect(usersService.deactivate(1)).resolves.toEqual(updated);
+      await expect(usersService.deactivate(1)).resolves.toEqual({ ...userDto, status: 'DISABLED' });
     });
 
     it('throws NotFoundException when the user does not exist', async () => {
@@ -323,7 +341,7 @@ describe('UsersService', () => {
 
   describe('reactivate', () => {
     it('does not touch subscriptions', async () => {
-      vi.mocked(prisma.mobileUser.update).mockResolvedValue({} as MobileUser);
+      vi.mocked(prisma.mobileUser.update).mockResolvedValue(userRow);
 
       await usersService.reactivate(1);
 
@@ -331,11 +349,10 @@ describe('UsersService', () => {
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
-    it('sets the user status to ACTIVE and returns the updated record', async () => {
-      const updated = { id: 1, status: 'ACTIVE' } as MobileUser;
-      vi.mocked(prisma.mobileUser.update).mockResolvedValue(updated);
+    it('sets the user status to ACTIVE and returns the updated record as a MobileUserDto', async () => {
+      vi.mocked(prisma.mobileUser.update).mockResolvedValue({ ...userRow, status: 'ACTIVE' });
 
-      await expect(usersService.reactivate(1)).resolves.toEqual(updated);
+      await expect(usersService.reactivate(1)).resolves.toEqual({ ...userDto, status: 'ACTIVE' });
       expect(prisma.mobileUser.update).toHaveBeenCalledWith({ where: { id: 1 }, data: { status: 'ACTIVE' } });
     });
 

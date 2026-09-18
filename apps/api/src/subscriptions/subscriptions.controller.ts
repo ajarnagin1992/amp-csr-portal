@@ -4,22 +4,22 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import {
   createSubscriptionSchema,
   type CreateSubscriptionDto,
+  type SubscriptionDto,
   transferSubscriptionSchema,
   type TransferSubscriptionDto,
 } from '@amp-csr/shared';
-import type { Subscription } from '../generated/prisma/client.js';
 
 @Controller('subscriptions')
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
   @Post()
-  create(@Body(new ZodValidationPipe(createSubscriptionSchema)) dto: CreateSubscriptionDto): Promise<Subscription> {
+  create(@Body(new ZodValidationPipe(createSubscriptionSchema)) dto: CreateSubscriptionDto): Promise<SubscriptionDto> {
     return this.subscriptionsService.create(dto.vehicleId, dto.planId);
   }
 
   @Delete(':id')
-  cancel(@Param('id', ParseIntPipe) id: number): Promise<Subscription> {
+  cancel(@Param('id', ParseIntPipe) id: number): Promise<SubscriptionDto> {
     return this.subscriptionsService.cancel(id);
   }
 
@@ -27,7 +27,7 @@ export class SubscriptionsController {
   transfer(
     @Param('id', ParseIntPipe) id: number,
     @Body(new ZodValidationPipe(transferSubscriptionSchema)) dto: TransferSubscriptionDto,
-  ): Promise<Subscription> {
+  ): Promise<SubscriptionDto> {
     return this.subscriptionsService.transfer(id, dto.vehicleId);
   }
 }

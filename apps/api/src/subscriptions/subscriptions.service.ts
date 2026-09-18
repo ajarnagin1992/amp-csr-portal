@@ -1,14 +1,16 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { Prisma, type Subscription } from '../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
 import { PRISMA_ERROR_CODE } from '../common/constants/prisma-error-codes.js';
 import { TERMINAL_STATUSES_SUBSCRIPTION } from '../common/constants/terminal-statuses.js';
+import type { SubscriptionDto } from '@amp-csr/shared';
+import { toSubscriptionDto } from '../common/mappers/subscription.mapper.js';
 
 @Injectable()
 export class SubscriptionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(vehicleId: number, planId: number): Promise<Subscription> {
+  async create(vehicleId: number, planId: number): Promise<SubscriptionDto> {
     const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
     if (!plan) {
       throw new NotFoundException(`Plan ${planId} not found`);
@@ -29,9 +31,12 @@ export class SubscriptionsService {
     nextBillingDate.setUTCMonth(nextBillingDate.getUTCMonth() + 1);
 
     try {
-      return await this.prisma.subscription.create({
-        data: { vehicleId, planId, status: 'ACTIVE', nextBillingDate },
-      });
+      return toSubscriptionDto(
+        await this.prisma.subscription.create({
+          data: { vehicleId, planId, status: 'ACTIVE', nextBillingDate },
+          include: { plan: true },
+        }),
+      );
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -43,24 +48,30 @@ export class SubscriptionsService {
     }
   }
 
-  async cancel(id: number): Promise<Subscription> {
-    const subscription = await this.prisma.subscription.findUnique({ where: { id } });
+  async cancel(id: number): Promise<SubscriptionDto> {
+    const subscription = await this.prisma.subscription.findUnique({ where: { id }, include: { plan: true } });
     if (!subscription) {
-            throw new NotFoundException(`Subscription ${id} not found`);
+      throw new NotFoundException(`Subscription ${id} not found`);
     }
 
     if (subscription.status === 'CANCELLED') {
-      return subscription;
+      return toSubscriptionDto(subscription);
     }
 
     if (TERMINAL_STATUSES_SUBSCRIPTION.has(subscription.status)) {
       throw new ConflictException(`Subscription ${id} is ${subscription.status} and cannot be cancelled`);
     }
 
-    return this.prisma.subscription.update({ where: { id }, data: { status: 'CANCELLED' } });
+    return toSubscriptionDto(
+      await this.prisma.subscription.update({
+        where: { id },
+        data: { status: 'CANCELLED' },
+        include: { plan: true },
+      }),
+    );
   }
 
-  async transfer(id: number, newVehicleId: number): Promise<Subscription> {
+  async transfer(id: number, newVehicleId: number): Promise<SubscriptionDto> {
     const subscription = await this.prisma.subscription.findUnique({
       where: { id },
       include: { vehicle: true },
@@ -82,7 +93,7 @@ export class SubscriptionsService {
       where: { vehicleId: newVehicleId },
       orderBy: { createdAt: 'desc' },
     });
-    
+
     if (targetCurrentSubscription && !TERMINAL_STATUSES_SUBSCRIPTION.has(targetCurrentSubscription.status)) {
       throw new ConflictException(`Vehicle ${newVehicleId} already has an active subscription`);
     }
@@ -96,9 +107,10 @@ export class SubscriptionsService {
           status: 'ACTIVE',
           nextBillingDate: subscription.nextBillingDate,
         },
+        include: { plan: true },
       }),
     ]);
 
-    return newSubscription;
+    return toSubscriptionDto(newSubscription);
   }
 }

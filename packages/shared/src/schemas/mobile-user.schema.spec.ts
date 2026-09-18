@@ -1,4 +1,4 @@
-import { listUsersResponseSchema, mobileUserSchema } from './mobile-user.schema.js';
+import { mobileUserSchema } from './mobile-user.schema.js';
 
 const validUser = {
   id: 1,
@@ -27,29 +27,5 @@ describe('mobileUserSchema', () => {
   it('rejects a missing id', () => {
     const { id, ...rest } = validUser;
     expect(mobileUserSchema.safeParse(rest).success).toBe(false);
-  });
-});
-
-describe('listUsersResponseSchema', () => {
-  it('accepts a valid paginated response', () => {
-    expect(listUsersResponseSchema.safeParse({ data: [validUser], total: 1 }).success).toBe(true);
-  });
-
-  it('accepts an empty data array', () => {
-    expect(listUsersResponseSchema.safeParse({ data: [], total: 0 }).success).toBe(true);
-  });
-
-  it('rejects a negative total', () => {
-    expect(listUsersResponseSchema.safeParse({ data: [], total: -1 }).success).toBe(false);
-  });
-
-  it('rejects a non-array data field', () => {
-    expect(listUsersResponseSchema.safeParse({ data: validUser, total: 1 }).success).toBe(false);
-  });
-
-  it('rejects a response containing an invalid user', () => {
-    expect(listUsersResponseSchema.safeParse({ data: [{ ...validUser, status: 'BOGUS' }], total: 1 }).success).toBe(
-      false,
-    );
   });
 });

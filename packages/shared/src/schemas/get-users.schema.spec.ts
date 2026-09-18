@@ -3,7 +3,19 @@ import {
   DEFAULT_PAGE_SIZE,
   getUsersRequestSchema,
   getUsersQuerySchema,
+  getUsersResponseSchema,
 } from './get-users.schema.js';
+
+const validUser = {
+  id: 1,
+  firstName: 'Jane',
+  lastName: 'Doe',
+  email: 'jane@example.com',
+  phone: '555-0100',
+  status: 'ACTIVE',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  lastUpdated: '2026-01-01T00:00:00.000Z',
+};
 
 describe('getUsersQuerySchema', () => {
   it('defaults page to 1 and pageSize to 20 when omitted', () => {
@@ -68,5 +80,29 @@ describe('pagination defaults', () => {
       page: DEFAULT_PAGE,
       pageSize: DEFAULT_PAGE_SIZE,
     });
+  });
+});
+
+describe('getUsersResponseSchema', () => {
+  it('accepts a valid paginated response', () => {
+    expect(getUsersResponseSchema.safeParse({ data: [validUser], total: 1 }).success).toBe(true);
+  });
+
+  it('accepts an empty data array', () => {
+    expect(getUsersResponseSchema.safeParse({ data: [], total: 0 }).success).toBe(true);
+  });
+
+  it('rejects a negative total', () => {
+    expect(getUsersResponseSchema.safeParse({ data: [], total: -1 }).success).toBe(false);
+  });
+
+  it('rejects a non-array data field', () => {
+    expect(getUsersResponseSchema.safeParse({ data: validUser, total: 1 }).success).toBe(false);
+  });
+
+  it('rejects a response containing an invalid user', () => {
+    expect(getUsersResponseSchema.safeParse({ data: [{ ...validUser, status: 'BOGUS' }], total: 1 }).success).toBe(
+      false,
+    );
   });
 });
