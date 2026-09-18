@@ -152,7 +152,7 @@ function SubscriptionActions({ vehicle, allVehicles }: { vehicle: VehicleDto; al
             disabled={!transferVehicleId}
             onClick={() =>
               transferSubscription.mutate(
-                { id: subscription.id, transferVehicleId: Number(transferVehicleId) },
+                { id: subscription.id, data: { vehicleId: Number(transferVehicleId) } },
                 { onSuccess: () => setIsTransferring(false) },
               )
             }

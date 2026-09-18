@@ -24,7 +24,7 @@ describe('useTransferSubscription', () => {
     const { wrapper } = createWrapper();
 
     const { result } = renderHook(() => useTransferSubscription(), { wrapper });
-    result.current.mutate({ id: 7, transferVehicleId: 20 });
+    result.current.mutate({ id: 7, data: { vehicleId: 20 } });
 
     await waitFor(() => expect(transferSubscription).toHaveBeenCalledWith(7, { vehicleId: 20 }));
   });
@@ -35,7 +35,7 @@ describe('useTransferSubscription', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
     const { result } = renderHook(() => useTransferSubscription(), { wrapper });
-    result.current.mutate({ id: 7, transferVehicleId: 20 });
+    result.current.mutate({ id: 7, data: { vehicleId: 20 } });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['users'] });
@@ -46,7 +46,7 @@ describe('useTransferSubscription', () => {
     const { wrapper } = createWrapper();
 
     const { result } = renderHook(() => useTransferSubscription(), { wrapper });
-    result.current.mutate({ id: 7, transferVehicleId: 20 });
+    result.current.mutate({ id: 7, data: { vehicleId: 20 } });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error).toEqual(new Error('conflict'));

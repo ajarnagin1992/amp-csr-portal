@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Loader, Pagination, Table, Text, TextInput } from '@mantine/core';
+import { DEFAULT_PAGE_SIZE } from '@amp-csr/shared';
 import { useUsers } from './useUsers.js';
-
-const PAGE_SIZE = 20;
 
 export function UsersList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const { data, isPending, isError } = useUsers({ page, pageSize: PAGE_SIZE, search: search || undefined });
+  const { data, isPending, isError } = useUsers({ page, pageSize: DEFAULT_PAGE_SIZE, search: search || undefined });
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,7 +56,7 @@ export function UsersList() {
             </Table>
             <Pagination
               data-testid="pagination"
-              total={Math.ceil(data.total / PAGE_SIZE)}
+              total={Math.ceil(data.total / DEFAULT_PAGE_SIZE)}
               value={page}
               onChange={setPage}
               hideWithOnePage

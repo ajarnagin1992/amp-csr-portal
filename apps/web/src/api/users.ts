@@ -1,9 +1,9 @@
-import type { z } from 'zod';
 import {
-  getUsersQuerySchema,
+  getUsersParamsSchema,
   listUsersResponseSchema,
   mobileUserSchema,
   userDetailSchema,
+  type GetUsersParamsDto,
   type ListUsersResponseDto,
   type MobileUserDto,
   type UpdateUserDto,
@@ -12,10 +12,8 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
-export type GetUsersParams = Partial<z.output<typeof getUsersQuerySchema>>;
-
-export async function getUsers(params: GetUsersParams = {}): Promise<ListUsersResponseDto> {
-  const { page, pageSize, search } = params;
+export async function getUsers(params: GetUsersParamsDto = {}): Promise<ListUsersResponseDto> {
+  const { page, pageSize, search } = getUsersParamsSchema.parse(params);
   const url = new URL('/users', API_BASE_URL);
   if (page !== undefined) url.searchParams.set('page', String(page));
   if (pageSize !== undefined) url.searchParams.set('pageSize', String(pageSize));

@@ -52,6 +52,13 @@ describe('getUsers', () => {
     await expect(getUsers()).rejects.toThrow();
   });
 
+  it('rejects params that do not satisfy the shared params schema, without fetching', async () => {
+    const fetchMock = mockFetchOnce({ data: [], total: 0 });
+
+    await expect(getUsers({ page: 0 })).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('throws when the response body does not match the shared schema', async () => {
     mockFetchOnce({ data: [{ ...validUser, status: 'BOGUS' }], total: 1 });
 
