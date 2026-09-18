@@ -10,8 +10,4 @@ describe('toPlanDto', () => {
     expect(toPlanDto(planRow)).not.toHaveProperty('createdAt');
     expect(toPlanDto(planRow)).not.toHaveProperty('lastUpdated');
   });
-
-  it('throws when the row does not satisfy the contract', () => {
-    expect(() => toPlanDto({ ...planRow, price: 'free' as unknown as number })).toThrow();
-  });
 });

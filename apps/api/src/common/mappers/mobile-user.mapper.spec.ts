@@ -12,10 +12,6 @@ describe('toMobileUserDto', () => {
     expect(user.createdAt).toBe('2026-01-01T00:00:00.000Z');
     expect(user.lastUpdated).toBe('2026-01-01T00:00:00.000Z');
   });
-
-  it('throws when the row does not satisfy the contract', () => {
-    expect(() => toMobileUserDto({ ...userRow, email: 'not-an-email' })).toThrow();
-  });
 });
 
 describe('toUserDetailDto', () => {

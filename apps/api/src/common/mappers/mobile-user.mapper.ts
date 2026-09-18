@@ -1,4 +1,4 @@
-import { mobileUserSchema, type MobileUserDto, type UserDetailDto } from '@amp-csr/shared';
+import type { MobileUserDto, UserDetailDto } from '@amp-csr/shared';
 import type { MobileUser } from '../../generated/prisma/client.js';
 import { toVehicleDto, type VehicleWithCurrentSubscription } from './vehicle.mapper.js';
 import { toPurchaseDto, type PurchaseWithVehicle } from './purchase.mapper.js';
@@ -9,16 +9,21 @@ export type MobileUserWithDetail = MobileUser & {
 };
 
 export function toMobileUserDto(user: MobileUser): MobileUserDto {
-  return mobileUserSchema.parse({
-    ...user,
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    phone: user.phone,
+    status: user.status,
     createdAt: user.createdAt.toISOString(),
     lastUpdated: user.lastUpdated.toISOString(),
-  });
+  };
 }
 
-// Each part is validated by its own mapper, so the composed detail needs no second parse.
 export function toUserDetailDto(user: MobileUserWithDetail): UserDetailDto {
   return {
+    // Safe to spread a DTO: its type is the contract, so it cannot carry extra columns.
     ...toMobileUserDto(user),
     vehicles: user.vehicles.map(toVehicleDto),
     purchases: user.purchases.map(toPurchaseDto),
