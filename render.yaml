@@ -1,0 +1,40 @@
+# Render Blueprint for the NestJS API.
+#
+# The web app and the /api proxy are NOT here — those deploy to Cloudflare
+# via .github/workflows/deploy-cloudflare.yml.
+#
+# Setup: Render dashboard -> New -> Blueprint -> pick this repo. Then set
+# DATABASE_URL (marked sync:false below, so Render prompts for it) to the
+# Neon connection string.
+#
+# Use Neon's DIRECT connection string, not the pooled one (the host with
+# `-pooler` in it). `prisma migrate deploy` runs in buildCommand below, and
+# migrations can fail against PgBouncer in transaction mode. At this scale
+# pooling buys nothing, so the direct URL is used for both migrate and the
+# running app.
+services:
+  - type: web
+    name: amp-csr-api
+    runtime: node
+    plan: free
+    branch: master
+    autoDeploy: true
+
+    # Migrations run at build time so the schema is current before the new
+    # instance starts serving. Seeding is deliberately NOT here: seed.ts
+    # truncates and rebuilds the demo data, which should happen once, by
+    # hand, not on every deploy.
+    buildCommand: >-
+      npm ci &&
+      npm run build -w @amp-csr/shared &&
+      npm run build -w @amp-csr/api &&
+      (cd apps/api && npx prisma migrate deploy)
+
+    startCommand: node apps/api/dist/main.js
+    healthCheckPath: /
+
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATABASE_URL
+        sync: false
