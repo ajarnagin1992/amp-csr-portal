@@ -139,12 +139,14 @@ describe('SubscriptionsService', () => {
   describe('cancel', () => {
     it('cancels the subscription and returns it', async () => {
       const cancelled = { id: 1, status: 'CANCELLED' } as Subscription;
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue({ id: 1, status: 'ACTIVE' });
       vi.mocked(prisma.subscription.update).mockResolvedValue(cancelled);
 
       await expect(subscriptionsService.cancel(1)).resolves.toEqual(cancelled);
     });
 
     it('passes the id and CANCELLED status to Prisma', async () => {
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue({ id: 1, status: 'ACTIVE' });
       vi.mocked(prisma.subscription.update).mockResolvedValue({} as Subscription);
 
       await subscriptionsService.cancel(1);
@@ -156,11 +158,24 @@ describe('SubscriptionsService', () => {
     });
 
     it('throws NotFoundException when the subscription does not exist', async () => {
-      vi.mocked(prisma.subscription.update).mockRejectedValue(
-        new Prisma.PrismaClientKnownRequestError('Record not found', { code: 'P2025', clientVersion: '7.10.0' }),
-      );
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue(null);
 
       await expect(subscriptionsService.cancel(999)).rejects.toThrow(NotFoundException);
+    });
+
+    it('is a no-op that returns the subscription when it is already CANCELLED', async () => {
+      const alreadyCancelled = { id: 1, status: 'CANCELLED' } as Subscription;
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue(alreadyCancelled);
+
+      await expect(subscriptionsService.cancel(1)).resolves.toEqual(alreadyCancelled);
+      expect(prisma.subscription.update).not.toHaveBeenCalled();
+    });
+
+    it('throws ConflictException when the subscription has been TRANSFERRED', async () => {
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue({ id: 1, status: 'TRANSFERRED' });
+
+      await expect(subscriptionsService.cancel(1)).rejects.toThrow(ConflictException);
+      expect(prisma.subscription.update).not.toHaveBeenCalled();
     });
   });
 

@@ -11,7 +11,6 @@ describe('updateUserSchema', () => {
       lastName: 'Doe',
       email: 'jane@example.com',
       phone: '555-1234',
-      status: 'DISABLED',
     });
     expect(result.success).toBe(true);
   });
@@ -24,11 +23,12 @@ describe('updateUserSchema', () => {
     expect(updateUserSchema.safeParse({ firstName: '' }).success).toBe(false);
   });
 
-  it('rejects a status value outside ACTIVE/DISABLED', () => {
-    expect(updateUserSchema.safeParse({ status: 'DELETED' }).success).toBe(false);
-  });
-
   it('rejects an empty body with no fields provided', () => {
     expect(updateUserSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('rejects a status field, which is no longer part of a profile update', () => {
+    const result = updateUserSchema.safeParse({ firstName: 'Jane', status: 'DISABLED' });
+    expect(result.success && Object.keys(result.data).includes('status')).toBe(false);
   });
 });

@@ -26,7 +26,7 @@ describe('useCreateSubscription', () => {
     const { result } = renderHook(() => useCreateSubscription(), { wrapper });
     result.current.mutate({ vehicleId: 1, planId: 5 });
 
-    await waitFor(() => expect(createSubscription).toHaveBeenCalledWith(1, 5));
+    await waitFor(() => expect(createSubscription).toHaveBeenCalledWith({ vehicleId: 1, planId: 5 }));
   });
 
   it('invalidates the user queries on success', async () => {

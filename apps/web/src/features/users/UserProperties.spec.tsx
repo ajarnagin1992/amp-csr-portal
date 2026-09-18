@@ -1,13 +1,15 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { renderWithQueryClient } from '../../test/renderWithQueryClient.js';
-import { getUser, updateUser } from '../../api/users.js';
+import { deactivateUser, getUser, reactivateUser, updateUser } from '../../api/users.js';
 import { UserProperties } from './UserProperties.js';
 import { validUser, validUserDetail } from '../../test/fixtures.js';
 
 vi.mock('../../api/users.js', () => ({
   getUser: vi.fn(),
   updateUser: vi.fn(),
+  deactivateUser: vi.fn(),
+  reactivateUser: vi.fn(),
 }));
 
 function renderUserProperties() {
@@ -238,13 +240,13 @@ describe('UserProperties', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /deactivate account/i }));
 
-      expect(updateUser).not.toHaveBeenCalled();
+      expect(deactivateUser).not.toHaveBeenCalled();
       await waitFor(() => expect(screen.getByText(/are you sure/i)).toBeInTheDocument());
     });
 
     it('deactivates the account once the confirmation is confirmed', async () => {
       vi.mocked(getUser).mockResolvedValue(validUserDetail);
-      vi.mocked(updateUser).mockResolvedValue({ ...validUser, status: 'DISABLED' });
+      vi.mocked(deactivateUser).mockResolvedValue({ ...validUser, status: 'DISABLED' });
       renderUserProperties();
       await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
 
@@ -252,7 +254,8 @@ describe('UserProperties', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: /confirm/i })).toBeInTheDocument());
       await userEvent.click(screen.getByRole('button', { name: /confirm/i }));
 
-      await waitFor(() => expect(updateUser).toHaveBeenCalledWith(1, { status: 'DISABLED' }));
+      await waitFor(() => expect(deactivateUser).toHaveBeenCalledWith(1));
+      expect(reactivateUser).not.toHaveBeenCalled();
     });
 
     it('does not deactivate the account when the confirmation is dismissed', async () => {
@@ -264,7 +267,7 @@ describe('UserProperties', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: /^cancel$/i })).toBeInTheDocument());
       await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
 
-      expect(updateUser).not.toHaveBeenCalled();
+      expect(deactivateUser).not.toHaveBeenCalled();
     });
 
     it('shows a Reactivate account button when the user is disabled', async () => {
@@ -278,7 +281,7 @@ describe('UserProperties', () => {
 
     it('reactivates the account once the confirmation is confirmed', async () => {
       vi.mocked(getUser).mockResolvedValue({ ...validUserDetail, status: 'DISABLED' });
-      vi.mocked(updateUser).mockResolvedValue({ ...validUser, status: 'ACTIVE' });
+      vi.mocked(reactivateUser).mockResolvedValue({ ...validUser, status: 'ACTIVE' });
       renderUserProperties();
       await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
 
@@ -286,7 +289,8 @@ describe('UserProperties', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: /confirm/i })).toBeInTheDocument());
       await userEvent.click(screen.getByRole('button', { name: /confirm/i }));
 
-      await waitFor(() => expect(updateUser).toHaveBeenCalledWith(1, { status: 'ACTIVE' }));
+      await waitFor(() => expect(reactivateUser).toHaveBeenCalledWith(1));
+      expect(deactivateUser).not.toHaveBeenCalled();
     });
   });
 });

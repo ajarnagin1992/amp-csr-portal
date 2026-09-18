@@ -3,6 +3,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma, type MobileUser, type Purchase } from '../generated/prisma/client.js';
+import { TERMINAL_STATUSES_SUBSCRIPTION } from '../common/constants/terminal-statuses.js';
 import type { UpdateUserDto } from '@amp-csr/shared';
 
 describe('UsersService', () => {
@@ -21,6 +22,10 @@ describe('UsersService', () => {
         include?: Prisma.PurchaseInclude;
       }) => Promise<Purchase[]>;
     };
+    subscription: {
+      updateMany: (args: Prisma.SubscriptionUpdateManyArgs) => Promise<Prisma.BatchPayload>;
+    };
+    $transaction: (ops: unknown[]) => Promise<unknown[]>;
   };
 
   beforeEach(async () => {
@@ -34,6 +39,10 @@ describe('UsersService', () => {
       purchase: {
         findMany: vi.fn(),
       },
+      subscription: {
+        updateMany: vi.fn(),
+      },
+      $transaction: vi.fn(),
     };
 
     const app: TestingModule = await Test.createTestingModule({
@@ -264,6 +273,78 @@ describe('UsersService', () => {
       vi.mocked(prisma.mobileUser.update).mockRejectedValue(unrelatedError);
 
       await expect(usersService.update(1, { firstName: 'Jane' })).rejects.toThrow(unrelatedError);
+    });
+
+    it('never touches subscriptions, since status is not an editable profile field', async () => {
+      vi.mocked(prisma.mobileUser.update).mockResolvedValue({} as MobileUser);
+
+      await usersService.update(1, { firstName: 'Jane' });
+
+      expect(prisma.subscription.updateMany).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deactivate', () => {
+    it("cancels every non-terminal subscription on the user's vehicles", async () => {
+      vi.mocked(prisma.$transaction).mockResolvedValue([{ count: 2 }, { id: 1, status: 'DISABLED' } as MobileUser]);
+
+      await usersService.deactivate(1);
+
+      expect(prisma.subscription.updateMany).toHaveBeenCalledWith({
+        where: { vehicle: { mobileUserId: 1 }, status: { notIn: [...TERMINAL_STATUSES_SUBSCRIPTION] } },
+        data: { status: 'CANCELLED' },
+      });
+    });
+
+    it('updates the user status alongside the subscription cancellation', async () => {
+      vi.mocked(prisma.$transaction).mockResolvedValue([{ count: 0 }, { id: 1, status: 'DISABLED' } as MobileUser]);
+
+      await usersService.deactivate(1);
+
+      expect(prisma.mobileUser.update).toHaveBeenCalledWith({ where: { id: 1 }, data: { status: 'DISABLED' } });
+    });
+
+    it('returns the updated user record', async () => {
+      const updated = { id: 1, status: 'DISABLED' } as MobileUser;
+      vi.mocked(prisma.$transaction).mockResolvedValue([{ count: 0 }, updated]);
+
+      await expect(usersService.deactivate(1)).resolves.toEqual(updated);
+    });
+
+    it('throws NotFoundException when the user does not exist', async () => {
+      vi.mocked(prisma.$transaction).mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Record not found', { code: 'P2025', clientVersion: '7.10.0' }),
+      );
+
+      await expect(usersService.deactivate(999)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('reactivate', () => {
+    it('does not touch subscriptions', async () => {
+      vi.mocked(prisma.mobileUser.update).mockResolvedValue({} as MobileUser);
+
+      await usersService.reactivate(1);
+
+      expect(prisma.subscription.updateMany).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('sets the user status to ACTIVE and returns the updated record', async () => {
+      const updated = { id: 1, status: 'ACTIVE' } as MobileUser;
+      vi.mocked(prisma.mobileUser.update).mockResolvedValue(updated);
+
+      await expect(usersService.reactivate(1)).resolves.toEqual(updated);
+      expect(prisma.mobileUser.update).toHaveBeenCalledWith({ where: { id: 1 }, data: { status: 'ACTIVE' } });
+    });
+
+    it('throws NotFoundException when the user does not exist', async () => {
+      vi.mocked(prisma.mobileUser.update).mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Record not found', { code: 'P2025', clientVersion: '7.10.0' }),
+      );
+
+      await expect(usersService.reactivate(999)).rejects.toThrow(NotFoundException);
     });
   });
 });

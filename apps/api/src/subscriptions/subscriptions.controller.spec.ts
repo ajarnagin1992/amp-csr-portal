@@ -39,21 +39,37 @@ describe('SubscriptionsController', () => {
     });
   });
 
-  describe('update', () => {
-    it('calls cancel when the body has a status', async () => {
+  describe('cancel', () => {
+    it('returns the cancelled subscription from the service', async () => {
       const subscription = { id: 1, status: 'CANCELLED' } as Subscription;
       vi.mocked(subscriptionsService.cancel).mockResolvedValue(subscription);
 
-      await expect(subscriptionsController.update(1, { status: 'CANCELLED' })).resolves.toBe(subscription);
+      await expect(subscriptionsController.cancel(1)).resolves.toBe(subscription);
+    });
+
+    it('passes the id from the route through to the service', async () => {
+      vi.mocked(subscriptionsService.cancel).mockResolvedValue({} as Subscription);
+
+      await subscriptionsController.cancel(1);
+
       expect(subscriptionsService.cancel).toHaveBeenCalledWith(1);
       expect(subscriptionsService.transfer).not.toHaveBeenCalled();
     });
+  });
 
-    it('calls transfer when the body has a transferVehicleId', async () => {
-      const subscription = { id: 1, vehicleId: 5 } as Subscription;
+  describe('transfer', () => {
+    it('returns the new subscription from the service', async () => {
+      const subscription = { id: 2, vehicleId: 5 } as Subscription;
       vi.mocked(subscriptionsService.transfer).mockResolvedValue(subscription);
 
-      await expect(subscriptionsController.update(1, { transferVehicleId: 5 })).resolves.toBe(subscription);
+      await expect(subscriptionsController.transfer(1, { vehicleId: 5 })).resolves.toBe(subscription);
+    });
+
+    it('passes the id from the route and the vehicleId from the body through to the service', async () => {
+      vi.mocked(subscriptionsService.transfer).mockResolvedValue({} as Subscription);
+
+      await subscriptionsController.transfer(1, { vehicleId: 5 });
+
       expect(subscriptionsService.transfer).toHaveBeenCalledWith(1, 5);
       expect(subscriptionsService.cancel).not.toHaveBeenCalled();
     });

@@ -18,7 +18,7 @@ describe('createSubscription', () => {
   it('sends a POST request to the subscriptions endpoint', async () => {
     const fetchMock = mockFetchOnce();
 
-    await createSubscription(1, 5);
+    await createSubscription({ vehicleId: 1, planId: 5 });
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/subscriptions');
@@ -28,7 +28,7 @@ describe('createSubscription', () => {
   it('sends the vehicleId and planId as the JSON request body', async () => {
     const fetchMock = mockFetchOnce();
 
-    await createSubscription(1, 5);
+    await createSubscription({ vehicleId: 1, planId: 5 });
 
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({ vehicleId: 1, planId: 5 });
@@ -37,7 +37,7 @@ describe('createSubscription', () => {
   it('throws when the response is not ok', async () => {
     mockFetchOnce(false, 409);
 
-    await expect(createSubscription(1, 5)).rejects.toThrow();
+    await expect(createSubscription({ vehicleId: 1, planId: 5 })).rejects.toThrow();
   });
 });
 
@@ -46,23 +46,23 @@ describe('cancelSubscription', () => {
     vi.unstubAllGlobals();
   });
 
-  it("sends a PATCH request to the subscription's endpoint", async () => {
+  it("sends a DELETE request to the subscription's endpoint", async () => {
     const fetchMock = mockFetchOnce();
 
     await cancelSubscription(7);
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/subscriptions/7');
-    expect(init.method).toBe('PATCH');
+    expect(init.method).toBe('DELETE');
   });
 
-  it('sends CANCELLED status as the JSON request body', async () => {
+  it('sends no request body', async () => {
     const fetchMock = mockFetchOnce();
 
     await cancelSubscription(7);
 
     const [, init] = fetchMock.mock.calls[0];
-    expect(JSON.parse(init.body)).toEqual({ status: 'CANCELLED' });
+    expect(init.body).toBeUndefined();
   });
 
   it('throws when the response is not ok', async () => {
@@ -77,28 +77,28 @@ describe('transferSubscription', () => {
     vi.unstubAllGlobals();
   });
 
-  it("sends a PATCH request to the subscription's endpoint", async () => {
+  it("sends a POST request to the subscription's transfer endpoint", async () => {
     const fetchMock = mockFetchOnce();
 
-    await transferSubscription(7, 20);
+    await transferSubscription(7, { vehicleId: 20 });
 
     const [url, init] = fetchMock.mock.calls[0];
-    expect(String(url)).toContain('/subscriptions/7');
-    expect(init.method).toBe('PATCH');
+    expect(String(url)).toContain('/subscriptions/7/transfer');
+    expect(init.method).toBe('POST');
   });
 
-  it('sends the transferVehicleId as the JSON request body', async () => {
+  it('sends the target vehicleId as the JSON request body', async () => {
     const fetchMock = mockFetchOnce();
 
-    await transferSubscription(7, 20);
+    await transferSubscription(7, { vehicleId: 20 });
 
     const [, init] = fetchMock.mock.calls[0];
-    expect(JSON.parse(init.body)).toEqual({ transferVehicleId: 20 });
+    expect(JSON.parse(init.body)).toEqual({ vehicleId: 20 });
   });
 
   it('throws when the response is not ok', async () => {
     mockFetchOnce(false, 409);
 
-    await expect(transferSubscription(7, 20)).rejects.toThrow();
+    await expect(transferSubscription(7, { vehicleId: 20 })).rejects.toThrow();
   });
 });

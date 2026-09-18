@@ -57,3 +57,27 @@ export async function updateUser(id: number, data: UpdateUserDto): Promise<Mobil
   const body = await response.json();
   return mobileUserSchema.parse(body);
 }
+
+export async function deactivateUser(id: number): Promise<MobileUserDto> {
+  const url = new URL(`/users/${id}`, API_BASE_URL);
+
+  const response = await fetch(url, { method: 'DELETE' });
+  if (!response.ok) {
+    throw new Error(`Failed to deactivate user: ${response.status}`);
+  }
+
+  const body = await response.json();
+  return mobileUserSchema.parse(body);
+}
+
+export async function reactivateUser(id: number): Promise<MobileUserDto> {
+  const url = new URL(`/users/${id}/reactivate`, API_BASE_URL);
+
+  const response = await fetch(url, { method: 'POST' });
+  if (!response.ok) {
+    throw new Error(`Failed to reactivate user: ${response.status}`);
+  }
+
+  const body = await response.json();
+  return mobileUserSchema.parse(body);
+}

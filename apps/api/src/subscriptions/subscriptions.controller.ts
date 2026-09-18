@@ -1,11 +1,11 @@
-import { Body, Controller, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import {
   createSubscriptionSchema,
   type CreateSubscriptionDto,
-  updateSubscriptionSchema,
-  type UpdateSubscriptionDto,
+  transferSubscriptionSchema,
+  type TransferSubscriptionDto,
 } from '@amp-csr/shared';
 import type { Subscription } from '../generated/prisma/client.js';
 
@@ -18,13 +18,16 @@ export class SubscriptionsController {
     return this.subscriptionsService.create(dto.vehicleId, dto.planId);
   }
 
-  @Patch(':id')
-  update(
+  @Delete(':id')
+  cancel(@Param('id', ParseIntPipe) id: number): Promise<Subscription> {
+    return this.subscriptionsService.cancel(id);
+  }
+
+  @Post(':id/transfer')
+  transfer(
     @Param('id', ParseIntPipe) id: number,
-    @Body(new ZodValidationPipe(updateSubscriptionSchema)) dto: UpdateSubscriptionDto,
+    @Body(new ZodValidationPipe(transferSubscriptionSchema)) dto: TransferSubscriptionDto,
   ): Promise<Subscription> {
-    return dto.transferVehicleId !== undefined
-      ? this.subscriptionsService.transfer(id, dto.transferVehicleId)
-      : this.subscriptionsService.cancel(id);
+    return this.subscriptionsService.transfer(id, dto.vehicleId);
   }
 }

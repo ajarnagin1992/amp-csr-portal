@@ -26,7 +26,7 @@ describe('useTransferSubscription', () => {
     const { result } = renderHook(() => useTransferSubscription(), { wrapper });
     result.current.mutate({ id: 7, transferVehicleId: 20 });
 
-    await waitFor(() => expect(transferSubscription).toHaveBeenCalledWith(7, 20));
+    await waitFor(() => expect(transferSubscription).toHaveBeenCalledWith(7, { vehicleId: 20 }));
   });
 
   it('invalidates the user queries on success', async () => {

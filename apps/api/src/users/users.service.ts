@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma, type MobileUser } from '../generated/prisma/client.js';
 import { PRISMA_ERROR_CODE } from '../common/constants/prisma-error-codes.js';
+import { TERMINAL_STATUSES_SUBSCRIPTION } from '../common/constants/terminal-statuses.js';
 import type { UpdateUserDto } from '@amp-csr/shared';
 
 @Injectable()
@@ -75,6 +76,39 @@ export class UsersService {
         error.code === PRISMA_ERROR_CODE.UNIQUE_CONSTRAINT_VIOLATION
       ) {
         throw new ConflictException('Email is already in use');
+      }
+      throw error;
+    }
+  }
+
+  // Deactivates the account and cancels every non-terminal subscription on the user's vehicles.
+  async deactivate(id: number): Promise<MobileUser> {
+    try {
+      const [, user] = await this.prisma.$transaction([
+        this.prisma.subscription.updateMany({
+          where: {
+            vehicle: { mobileUserId: id },
+            status: { notIn: [...TERMINAL_STATUSES_SUBSCRIPTION] },
+          },
+          data: { status: 'CANCELLED' },
+        }),
+        this.prisma.mobileUser.update({ where: { id }, data: { status: 'DISABLED' } }),
+      ]);
+      return user;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_ERROR_CODE.RECORD_NOT_FOUND) {
+        throw new NotFoundException(`User ${id} not found`);
+      }
+      throw error;
+    }
+  }
+
+  async reactivate(id: number): Promise<MobileUser> {
+    try {
+      return await this.prisma.mobileUser.update({ where: { id }, data: { status: 'ACTIVE' } });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_ERROR_CODE.RECORD_NOT_FOUND) {
+        throw new NotFoundException(`User ${id} not found`);
       }
       throw error;
     }

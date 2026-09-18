@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, ParseIntPipe, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { UsersService } from './users.service.js';
 import type { MobileUser } from '../generated/prisma/client.js';
 import { getUsersQuerySchema, updateUserSchema, type GetUsersQueryDto, type UpdateUserDto } from '@amp-csr/shared';
@@ -26,5 +26,15 @@ export class UsersController {
     @Body(new ZodValidationPipe(updateUserSchema)) dto: UpdateUserDto,
   ): Promise<MobileUser> {
     return this.usersService.update(id, dto);
+  }
+
+  @Delete(':id')
+  deactivate(@Param('id', ParseIntPipe) id: number): Promise<MobileUser> {
+    return this.usersService.deactivate(id);
+  }
+
+  @Post(':id/reactivate')
+  reactivate(@Param('id', ParseIntPipe) id: number): Promise<MobileUser> {
+    return this.usersService.reactivate(id);
   }
 }

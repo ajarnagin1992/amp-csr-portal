@@ -1,5 +1,5 @@
 import { validUser, validUserDetail } from '../test/fixtures.js';
-import { getUser, getUsers, updateUser } from './users.js';
+import { deactivateUser, getUser, getUsers, reactivateUser, updateUser } from './users.js';
 
 
 function mockFetchOnce(body: unknown, ok = true, status = 200) {
@@ -136,5 +136,65 @@ describe('updateUser', () => {
     mockFetchOnce({ ...validUser, status: 'BOGUS' });
 
     await expect(updateUser(1, { firstName: 'Jane' })).rejects.toThrow();
+  });
+});
+
+describe('deactivateUser', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends a DELETE request to the user's endpoint", async () => {
+    const fetchMock = mockFetchOnce(validUser);
+
+    await deactivateUser(1);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/users/1');
+    expect(init.method).toBe('DELETE');
+  });
+
+  it('returns the parsed user on a valid response', async () => {
+    mockFetchOnce(validUser);
+
+    const result = await deactivateUser(1);
+
+    expect(result).toEqual(validUser);
+  });
+
+  it('throws when the response is not ok', async () => {
+    mockFetchOnce({ message: 'not found' }, false, 404);
+
+    await expect(deactivateUser(1)).rejects.toThrow();
+  });
+});
+
+describe('reactivateUser', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends a POST request to the user's reactivate endpoint", async () => {
+    const fetchMock = mockFetchOnce(validUser);
+
+    await reactivateUser(1);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/users/1/reactivate');
+    expect(init.method).toBe('POST');
+  });
+
+  it('returns the parsed user on a valid response', async () => {
+    mockFetchOnce(validUser);
+
+    const result = await reactivateUser(1);
+
+    expect(result).toEqual(validUser);
+  });
+
+  it('throws when the response is not ok', async () => {
+    mockFetchOnce({ message: 'not found' }, false, 404);
+
+    await expect(reactivateUser(1)).rejects.toThrow();
   });
 });

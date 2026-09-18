@@ -10,10 +10,12 @@ describe('UsersController', () => {
     findAll: (page: number, pageSize: number, search?: string) => Promise<{ data: MobileUser[]; total: number }>;
     findOne: (id: number) => Promise<unknown>;
     update: (id: number, dto: UpdateUserDto) => Promise<MobileUser>;
+    deactivate: (id: number) => Promise<MobileUser>;
+    reactivate: (id: number) => Promise<MobileUser>;
   };
 
   beforeEach(async () => {
-    usersService = { findAll: vi.fn(), findOne: vi.fn(), update: vi.fn() };
+    usersService = { findAll: vi.fn(), findOne: vi.fn(), update: vi.fn(), deactivate: vi.fn(), reactivate: vi.fn() };
 
     const app: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
@@ -79,6 +81,42 @@ describe('UsersController', () => {
       await usersController.update(1, { firstName: 'Jane' });
 
       expect(usersService.update).toHaveBeenCalledWith(1, { firstName: 'Jane' });
+    });
+  });
+
+  describe('deactivate', () => {
+    it('returns the deactivated user from the service', async () => {
+      const deactivated = { id: 1, status: 'DISABLED' } as MobileUser;
+      vi.mocked(usersService.deactivate).mockResolvedValue(deactivated);
+
+      await expect(usersController.deactivate(1)).resolves.toBe(deactivated);
+    });
+
+    it('passes the id from the route through to the service', async () => {
+      vi.mocked(usersService.deactivate).mockResolvedValue({} as MobileUser);
+
+      await usersController.deactivate(1);
+
+      expect(usersService.deactivate).toHaveBeenCalledWith(1);
+      expect(usersService.reactivate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('reactivate', () => {
+    it('returns the reactivated user from the service', async () => {
+      const reactivated = { id: 1, status: 'ACTIVE' } as MobileUser;
+      vi.mocked(usersService.reactivate).mockResolvedValue(reactivated);
+
+      await expect(usersController.reactivate(1)).resolves.toBe(reactivated);
+    });
+
+    it('passes the id from the route through to the service', async () => {
+      vi.mocked(usersService.reactivate).mockResolvedValue({} as MobileUser);
+
+      await usersController.reactivate(1);
+
+      expect(usersService.reactivate).toHaveBeenCalledWith(1);
+      expect(usersService.deactivate).not.toHaveBeenCalled();
     });
   });
 });

@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import { Alert, Button, Group, Loader, Modal, Select, Table, Text, TextInput, Title } from '@mantine/core';
 import { useUser } from './useUser.js';
 import { useUpdateUser } from './useUpdateUser.js';
+import { useDeactivateUser } from './useDeactivateUser.js';
+import { useReactivateUser } from './useReactivateUser.js';
 import { usePlans } from '../plans/usePlans.js';
 import { useCreateSubscription } from '../subscriptions/useCreateSubscription.js';
 import { useCancelSubscription } from '../subscriptions/useCancelSubscription.js';
@@ -174,6 +176,8 @@ function AccountInfo({ data }: { data: MobileUserDto }) {
   const [email, setEmail] = useState(data.email);
   const [phone, setPhone] = useState(data.phone);
   const { mutate, isError, error } = useUpdateUser(data.id);
+  const deactivateUser = useDeactivateUser();
+  const reactivateUser = useReactivateUser();
 
   function startEditing() {
     setFirstName(data.firstName);
@@ -187,7 +191,15 @@ function AccountInfo({ data }: { data: MobileUserDto }) {
     mutate({ firstName, lastName, email, phone }, { onSuccess: () => setIsEditing(false) });
   }
 
-  const nextStatus = data.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+  function confirmStatusChange() {
+    if (data.status === 'ACTIVE') {
+      deactivateUser.mutate(data.id);
+    } else {
+      reactivateUser.mutate(data.id);
+    }
+    setIsConfirmingStatus(false);
+  }
+
   const hasChanges =
     firstName !== data.firstName ||
     lastName !== data.lastName ||
@@ -247,14 +259,7 @@ function AccountInfo({ data }: { data: MobileUserDto }) {
           Are you sure you want to {data.status === 'ACTIVE' ? 'deactivate' : 'reactivate'} this account?
         </Text>
         <Group>
-          <Button
-            onClick={() => {
-              mutate({ status: nextStatus });
-              setIsConfirmingStatus(false);
-            }}
-          >
-            Confirm
-          </Button>
+          <Button onClick={confirmStatusChange}>Confirm</Button>
           <Button variant="default" onClick={() => setIsConfirmingStatus(false)}>
             Cancel
           </Button>

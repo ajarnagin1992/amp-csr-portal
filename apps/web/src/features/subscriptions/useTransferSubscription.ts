@@ -6,7 +6,7 @@ export function useTransferSubscription() {
 
   return useMutation({
     mutationFn: ({ id, transferVehicleId }: { id: number; transferVehicleId: number }) =>
-      transferSubscription(id, transferVehicleId),
+      transferSubscription(id, { vehicleId: transferVehicleId }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['users'] });
     },

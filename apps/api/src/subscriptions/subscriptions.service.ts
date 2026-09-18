@@ -44,17 +44,20 @@ export class SubscriptionsService {
   }
 
   async cancel(id: number): Promise<Subscription> {
-    try {
-      return await this.prisma.subscription.update({ where: { id }, data: { status: 'CANCELLED' } });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === PRISMA_ERROR_CODE.RECORD_NOT_FOUND
-      ) {
-        throw new NotFoundException(`Subscription ${id} not found`);
-      }
-      throw error;
+    const subscription = await this.prisma.subscription.findUnique({ where: { id } });
+    if (!subscription) {
+            throw new NotFoundException(`Subscription ${id} not found`);
     }
+
+    if (subscription.status === 'CANCELLED') {
+      return subscription;
+    }
+
+    if (TERMINAL_STATUSES_SUBSCRIPTION.has(subscription.status)) {
+      throw new ConflictException(`Subscription ${id} is ${subscription.status} and cannot be cancelled`);
+    }
+
+    return this.prisma.subscription.update({ where: { id }, data: { status: 'CANCELLED' } });
   }
 
   async transfer(id: number, newVehicleId: number): Promise<Subscription> {
