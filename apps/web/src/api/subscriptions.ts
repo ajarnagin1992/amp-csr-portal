@@ -1,9 +1,9 @@
 import type { CreateSubscriptionDto, TransferSubscriptionDto } from '@amp-csr/shared';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+import { apiUrl } from './apiUrl.js';
 
 export async function createSubscription(data: CreateSubscriptionDto): Promise<void> {
-  const url = new URL('/subscriptions', API_BASE_URL);
+  const url = apiUrl('/subscriptions');
 
   const response = await fetch(url, {
     method: 'POST',
@@ -16,7 +16,7 @@ export async function createSubscription(data: CreateSubscriptionDto): Promise<v
 }
 
 export async function cancelSubscription(id: number): Promise<void> {
-  const url = new URL(`/subscriptions/${id}`, API_BASE_URL);
+  const url = apiUrl(`/subscriptions/${id}`);
 
   const response = await fetch(url, { method: 'DELETE' });
   if (!response.ok) {
@@ -25,7 +25,7 @@ export async function cancelSubscription(id: number): Promise<void> {
 }
 
 export async function transferSubscription(id: number, data: TransferSubscriptionDto): Promise<void> {
-  const url = new URL(`/subscriptions/${id}/transfer`, API_BASE_URL);
+  const url = apiUrl(`/subscriptions/${id}/transfer`);
 
   const response = await fetch(url, {
     method: 'POST',

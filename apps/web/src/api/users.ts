@@ -10,11 +10,11 @@ import {
   type UserDetailDto,
 } from '@amp-csr/shared';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+import { apiUrl } from './apiUrl.js';
 
 export async function getUsers(params: GetUsersRequestDto = {}): Promise<ListUsersResponseDto> {
   const { page, pageSize, search } = getUsersRequestSchema.parse(params);
-  const url = new URL('/users', API_BASE_URL);
+  const url = apiUrl('/users');
   if (page !== undefined) url.searchParams.set('page', String(page));
   if (pageSize !== undefined) url.searchParams.set('pageSize', String(pageSize));
   if (search !== undefined) url.searchParams.set('search', search);
@@ -29,7 +29,7 @@ export async function getUsers(params: GetUsersRequestDto = {}): Promise<ListUse
 }
 
 export async function getUser(id: number): Promise<UserDetailDto> {
-  const url = new URL(`/users/${id}`, API_BASE_URL);
+  const url = apiUrl(`/users/${id}`);
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -41,7 +41,7 @@ export async function getUser(id: number): Promise<UserDetailDto> {
 }
 
 export async function updateUser(id: number, data: UpdateUserDto): Promise<MobileUserDto> {
-  const url = new URL(`/users/${id}`, API_BASE_URL);
+  const url = apiUrl(`/users/${id}`);
 
   const response = await fetch(url, {
     method: 'PATCH',
@@ -57,7 +57,7 @@ export async function updateUser(id: number, data: UpdateUserDto): Promise<Mobil
 }
 
 export async function deactivateUser(id: number): Promise<MobileUserDto> {
-  const url = new URL(`/users/${id}`, API_BASE_URL);
+  const url = apiUrl(`/users/${id}`);
 
   const response = await fetch(url, { method: 'DELETE' });
   if (!response.ok) {
@@ -69,7 +69,7 @@ export async function deactivateUser(id: number): Promise<MobileUserDto> {
 }
 
 export async function reactivateUser(id: number): Promise<MobileUserDto> {
-  const url = new URL(`/users/${id}/reactivate`, API_BASE_URL);
+  const url = apiUrl(`/users/${id}/reactivate`);
 
   const response = await fetch(url, { method: 'POST' });
   if (!response.ok) {

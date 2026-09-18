@@ -8,8 +8,8 @@ moving a subscription to a new vehicle, and accounts blocked by a failed payment
 
 | | |
 |---|---|
-| **Portal** | _<cloudflare-url>_ |
-| **API** | _<render-url>_ |
+| **Portal** | https://amp-csr-gateway.ajarnagin1992.workers.dev |
+| **API** | https://amp-csr-api.onrender.com |
 | **Repo** | https://github.com/ajarnagin1992/amp-csr-portal |
 
 > **Note:** the API runs on a free tier that sleeps after inactivity. The first
