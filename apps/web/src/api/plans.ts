@@ -13,6 +13,6 @@ export async function getPlans(): Promise<PlanDto[]> {
     throw new Error(`Failed to fetch plans: ${response.status}`);
   }
 
-  const body = await response.json();
+  const body: unknown = await response.json();
   return plansResponseSchema.parse(body);
 }

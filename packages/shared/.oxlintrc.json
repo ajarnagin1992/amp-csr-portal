@@ -1,7 +1,16 @@
-   {
-     "$schema": "../../node_modules/oxlint/configuration_schema.json",
-     "rules": {
-       "typescript/no-explicit-any": "error",
-       "unicorn/no-null": "error"
-     }
-   }
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "unicorn/no-null": "error",
+    "eslint/no-unused-vars": ["warn", { "ignoreRestSiblings": true }]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.spec.ts"],
+      "rules": {
+        "unicorn/no-null": "off"
+      }
+    }
+  ]
+}

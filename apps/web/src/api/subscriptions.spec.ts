@@ -1,11 +1,15 @@
 import { cancelSubscription, createSubscription, transferSubscription } from './subscriptions.js';
 
+// The api client always calls fetch with a URL and, when it sends a body, a
+// JSON string. Typing the mock that way keeps the assertions below type-safe.
+type ClientFetch = (url: URL, init?: RequestInit & { body?: string }) => Promise<Response>;
+
 function mockFetchOnce(ok = true, status = 200) {
-  const fetchMock = vi.fn().mockResolvedValue({
+  const fetchMock = vi.fn<ClientFetch>().mockResolvedValue({
     ok,
     status,
     json: () => Promise.resolve({}),
-  });
+  } as Response);
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }
@@ -22,7 +26,7 @@ describe('createSubscription', () => {
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/subscriptions');
-    expect(init.method).toBe('POST');
+    expect(init?.method).toBe('POST');
   });
 
   it('sends the vehicleId and planId as the JSON request body', async () => {
@@ -31,7 +35,7 @@ describe('createSubscription', () => {
     await createSubscription({ vehicleId: 1, planId: 5 });
 
     const [, init] = fetchMock.mock.calls[0];
-    expect(JSON.parse(init.body)).toEqual({ vehicleId: 1, planId: 5 });
+    expect(JSON.parse(init?.body ?? '')).toEqual({ vehicleId: 1, planId: 5 });
   });
 
   it('throws when the response is not ok', async () => {
@@ -53,7 +57,7 @@ describe('cancelSubscription', () => {
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/subscriptions/7');
-    expect(init.method).toBe('DELETE');
+    expect(init?.method).toBe('DELETE');
   });
 
   it('sends no request body', async () => {
@@ -62,7 +66,7 @@ describe('cancelSubscription', () => {
     await cancelSubscription(7);
 
     const [, init] = fetchMock.mock.calls[0];
-    expect(init.body).toBeUndefined();
+    expect(init?.body).toBeUndefined();
   });
 
   it('throws when the response is not ok', async () => {
@@ -84,7 +88,7 @@ describe('transferSubscription', () => {
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/subscriptions/7/transfer');
-    expect(init.method).toBe('POST');
+    expect(init?.method).toBe('POST');
   });
 
   it('sends the target vehicleId as the JSON request body', async () => {
@@ -93,7 +97,7 @@ describe('transferSubscription', () => {
     await transferSubscription(7, { vehicleId: 20 });
 
     const [, init] = fetchMock.mock.calls[0];
-    expect(JSON.parse(init.body)).toEqual({ vehicleId: 20 });
+    expect(JSON.parse(init?.body ?? '')).toEqual({ vehicleId: 20 });
   });
 
   it('throws when the response is not ok', async () => {

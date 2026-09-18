@@ -2,12 +2,16 @@ import { validUser, validUserDetail } from '../test/fixtures.js';
 import { deactivateUser, getUser, getUsers, reactivateUser, updateUser } from './users.js';
 
 
+// The api client always calls fetch with a URL and, when it sends a body, a
+// JSON string. Typing the mock that way keeps the assertions below type-safe.
+type ClientFetch = (url: URL, init?: RequestInit & { body?: string }) => Promise<Response>;
+
 function mockFetchOnce(body: unknown, ok = true, status = 200) {
-  const fetchMock = vi.fn().mockResolvedValue({
+  const fetchMock = vi.fn<ClientFetch>().mockResolvedValue({
     ok,
     status,
     json: () => Promise.resolve(body),
-  });
+  } as Response);
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }
@@ -113,7 +117,7 @@ describe('updateUser', () => {
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/users/1');
-    expect(init.method).toBe('PATCH');
+    expect(init?.method).toBe('PATCH');
   });
 
   it('sends the update fields as the JSON request body', async () => {
@@ -122,7 +126,7 @@ describe('updateUser', () => {
     await updateUser(1, { firstName: 'Jane', email: 'jane@example.com' });
 
     const [, init] = fetchMock.mock.calls[0];
-    expect(JSON.parse(init.body)).toEqual({ firstName: 'Jane', email: 'jane@example.com' });
+    expect(JSON.parse(init?.body ?? '')).toEqual({ firstName: 'Jane', email: 'jane@example.com' });
   });
 
   it('returns the parsed user on a valid response', async () => {
@@ -158,7 +162,7 @@ describe('deactivateUser', () => {
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/users/1');
-    expect(init.method).toBe('DELETE');
+    expect(init?.method).toBe('DELETE');
   });
 
   it('returns the parsed user on a valid response', async () => {
@@ -188,7 +192,7 @@ describe('reactivateUser', () => {
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/users/1/reactivate');
-    expect(init.method).toBe('POST');
+    expect(init?.method).toBe('POST');
   });
 
   it('returns the parsed user on a valid response', async () => {

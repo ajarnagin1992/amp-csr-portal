@@ -24,7 +24,7 @@ export async function getUsers(params: GetUsersRequestDto = {}): Promise<ListUse
     throw new Error(`Failed to fetch users: ${response.status}`);
   }
 
-  const body = await response.json();
+  const body: unknown = await response.json();
   return getUsersResponseSchema.parse(body);
 }
 
@@ -36,7 +36,7 @@ export async function getUser(id: number): Promise<UserDetailDto> {
     throw new Error(`Failed to fetch user: ${response.status}`);
   }
 
-  const body = await response.json();
+  const body: unknown = await response.json();
   return userDetailSchema.parse(body);
 }
 
@@ -52,7 +52,7 @@ export async function updateUser(id: number, data: UpdateUserDto): Promise<Mobil
     throw new Error(`Failed to update user: ${response.status}`);
   }
 
-  const body = await response.json();
+  const body: unknown = await response.json();
   return mobileUserSchema.parse(body);
 }
 
@@ -64,7 +64,7 @@ export async function deactivateUser(id: number): Promise<MobileUserDto> {
     throw new Error(`Failed to deactivate user: ${response.status}`);
   }
 
-  const body = await response.json();
+  const body: unknown = await response.json();
   return mobileUserSchema.parse(body);
 }
 
@@ -76,6 +76,6 @@ export async function reactivateUser(id: number): Promise<MobileUserDto> {
     throw new Error(`Failed to reactivate user: ${response.status}`);
   }
 
-  const body = await response.json();
+  const body: unknown = await response.json();
   return mobileUserSchema.parse(body);
 }

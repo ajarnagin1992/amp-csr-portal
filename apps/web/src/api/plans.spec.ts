@@ -1,11 +1,12 @@
 import { getPlans } from './plans.js';
+type ClientFetch = (url: URL, init?: RequestInit & { body?: string }) => Promise<Response>;
 
 function mockFetchOnce(body: unknown, ok = true, status = 200) {
-  const fetchMock = vi.fn().mockResolvedValue({
+  const fetchMock = vi.fn<ClientFetch>().mockResolvedValue({
     ok,
     status,
     json: () => Promise.resolve(body),
-  });
+  } as Response);
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }

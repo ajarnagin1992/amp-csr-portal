@@ -37,4 +37,13 @@ export default defineConfig([
       ],
     },
   },
+  {
+    // Tests and the test harness must model the `null`s that cross the
+    // boundary: API payloads, and DOM types such as `MediaQueryList.onchange`
+    // that require `null` outright.
+    files: ['**/*.spec.{ts,tsx}', 'src/test/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': 'off',
+    },
+  },
 ])
