@@ -1,9 +1,9 @@
 import {
-  getUsersParamsSchema,
-  listUsersResponseSchema,
+  getUsersRequestSchema,
+  getUsersResponseSchema,
   mobileUserSchema,
   userDetailSchema,
-  type GetUsersParamsDto,
+  type GetUsersRequestDto,
   type ListUsersResponseDto,
   type MobileUserDto,
   type UpdateUserDto,
@@ -12,8 +12,8 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
-export async function getUsers(params: GetUsersParamsDto = {}): Promise<ListUsersResponseDto> {
-  const { page, pageSize, search } = getUsersParamsSchema.parse(params);
+export async function getUsers(params: GetUsersRequestDto = {}): Promise<ListUsersResponseDto> {
+  const { page, pageSize, search } = getUsersRequestSchema.parse(params);
   const url = new URL('/users', API_BASE_URL);
   if (page !== undefined) url.searchParams.set('page', String(page));
   if (pageSize !== undefined) url.searchParams.set('pageSize', String(pageSize));
@@ -25,7 +25,7 @@ export async function getUsers(params: GetUsersParamsDto = {}): Promise<ListUser
   }
 
   const body = await response.json();
-  return listUsersResponseSchema.parse(body);
+  return getUsersResponseSchema.parse(body);
 }
 
 export async function getUser(id: number): Promise<UserDetailDto> {

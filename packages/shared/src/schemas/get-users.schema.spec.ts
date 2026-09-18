@@ -1,9 +1,9 @@
 import {
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
-  getUsersParamsSchema,
+  getUsersRequestSchema,
   getUsersQuerySchema,
-} from './get-users-query.schema.js';
+} from './get-users.schema.js';
 
 describe('getUsersQuerySchema', () => {
   it('defaults page to 1 and pageSize to 20 when omitted', () => {
@@ -36,29 +36,29 @@ describe('getUsersQuerySchema', () => {
 
 describe('getUsersParamsSchema', () => {
   it('leaves page and pageSize undefined when omitted so the server applies the defaults', () => {
-    const result = getUsersParamsSchema.parse({});
+    const result = getUsersRequestSchema.parse({});
     expect(result).toEqual({});
   });
 
   it('keeps explicitly provided page, pageSize, and search', () => {
-    const result = getUsersParamsSchema.parse({ page: 2, pageSize: 5, search: 'jane' });
+    const result = getUsersRequestSchema.parse({ page: 2, pageSize: 5, search: 'jane' });
     expect(result).toEqual({ page: 2, pageSize: 5, search: 'jane' });
   });
 
   it('rejects a non-integer page', () => {
-    expect(getUsersParamsSchema.safeParse({ page: 1.5 }).success).toBe(false);
+    expect(getUsersRequestSchema.safeParse({ page: 1.5 }).success).toBe(false);
   });
 
   it('rejects a zero or negative page', () => {
-    expect(getUsersParamsSchema.safeParse({ page: 0 }).success).toBe(false);
+    expect(getUsersRequestSchema.safeParse({ page: 0 }).success).toBe(false);
   });
 
   it('rejects a zero or negative pageSize', () => {
-    expect(getUsersParamsSchema.safeParse({ pageSize: -1 }).success).toBe(false);
+    expect(getUsersRequestSchema.safeParse({ pageSize: -1 }).success).toBe(false);
   });
 
   it('rejects a page that is not a number at all', () => {
-    expect(getUsersParamsSchema.safeParse({ page: 'banana' }).success).toBe(false);
+    expect(getUsersRequestSchema.safeParse({ page: 'banana' }).success).toBe(false);
   });
 });
 

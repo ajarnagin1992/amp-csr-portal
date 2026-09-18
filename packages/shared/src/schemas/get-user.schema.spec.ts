@@ -1,4 +1,7 @@
-import { purchaseSchema, subscriptionSchema, userDetailSchema, vehicleSchema } from './user-detail.schema.js';
+import { userDetailSchema } from './get-user.schema.js';
+import { vehicleSchema } from './vehicle.schema.js';
+import { purchaseSchema } from './purchase.schema.js';
+import { subscriptionSchema } from './subscription.schema.js';
 
 const validPlan = {
   id: 1,

@@ -1,8 +1,8 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getUsers} from '../../api/users.js';
-import type { GetUsersParamsDto } from '../../../../../packages/shared/dist/schemas/get-users-query.schema.js';
+import type { GetUsersRequestDto } from '../../../../../packages/shared/dist/schemas/get-users.schema.js';
 
-export function useUsers(params: GetUsersParamsDto = {}) {
+export function useUsers(params: GetUsersRequestDto = {}) {
   return useQuery({
     queryKey: ['users', params],
     queryFn: () => getUsers(params),

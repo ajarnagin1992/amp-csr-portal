@@ -16,7 +16,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id', ParseIntPipe) id: number): Promise<MobileUser> {
     return this.usersService.findOne(id);
   }
 

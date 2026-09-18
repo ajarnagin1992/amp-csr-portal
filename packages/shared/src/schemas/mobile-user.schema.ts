@@ -15,9 +15,4 @@ export const mobileUserSchema = z.object({
 
 export type MobileUserDto = z.infer<typeof mobileUserSchema>;
 
-export const listUsersResponseSchema = z.object({
-  data: z.array(mobileUserSchema),
-  total: z.number().int().nonnegative(),
-});
 
-export type ListUsersResponseDto = z.infer<typeof listUsersResponseSchema>;
