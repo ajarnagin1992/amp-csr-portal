@@ -2,7 +2,11 @@ name: Deploy gateway
 
 # Builds the React app and deploys it, alongside the API gateway Worker, to
 # Cloudflare. The Worker serves apps/web/dist as static assets and proxies
-# /api/* to the NestJS API (see apps/gateway/wrangler.jsonc).
+# /api/* to the NestJS API on Render (see apps/gateway/wrangler.jsonc).
+#
+# This runs exactly what `npm run deploy:portal` runs locally: VITE_API_URL
+# comes from apps/web/.env.production and API_ORIGIN from wrangler.jsonc, so
+# there is one source of truth for both and no deploy-time flags to forget.
 #
 # Runs only after CI has passed on master, and only when app code or
 # dependencies actually changed.
@@ -47,12 +51,7 @@ jobs:
 
       - run: npm ci
       - run: npm run build -w @amp-csr/shared
-
-      - name: Build web app
-        run: npm run build -w @amp-csr/web
-        env:
-          # Same-origin path: the gateway Worker proxies this to the API.
-          VITE_API_URL: /api
+      - run: npm run build -w @amp-csr/web
 
       - name: Deploy Worker (serves apps/web/dist + proxies /api)
         uses: cloudflare/wrangler-action@v3
@@ -60,4 +59,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/gateway
-          command: deploy --var API_ORIGIN:${{ secrets.API_ORIGIN }}
+          command: deploy

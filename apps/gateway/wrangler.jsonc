@@ -29,7 +29,7 @@
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
 	 */
 	"vars": {
-		"API_ORIGIN": "http://localhost:3000"
+		"API_ORIGIN": "https://amp-csr-api.onrender.com"
 	},
 	/**
 	 * Static Assets
