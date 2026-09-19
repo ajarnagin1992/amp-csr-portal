@@ -71,7 +71,7 @@ can't be used to bypass the portal.
 npm ci
 cp apps/api/.env.example apps/api/.env   # point DATABASE_URL at your Postgres
 npm --prefix apps/api run prisma:migrate
-npm --prefix apps/api run prisma:seed    # ~45 customers, plus a CSR: csr@example.com
+npm --prefix apps/api run prisma:seed    # ~45 customers, plus a CSR: csr@example.com / password
 npm run dev                              # api :3000, web :5173
 ```
 
@@ -80,9 +80,18 @@ any request, since `npm run dev` proxies straight to it without going through th
 Worker. To exercise the Worker path, set the same `GATEWAY_SECRET` in
 `apps/api/.env` and in `apps/gateway/.dev.vars` (see `.dev.vars.example`).
 
-The seed prints a random password for `csr@example.com` the first time it
-creates it. To choose one (or reset it), run the seed with `SEED_CSR_PASSWORD`
-set. Re-seeding never deletes CSR accounts.
+The seed creates one CSR: sign in with `csr@example.com` and the demo password
+`password` (its display name is `username`). Every run resets that password; to
+use a different one, run the seed with `SEED_CSR_PASSWORD` set, which you should
+do for anything reachable from the internet. Re-seeding never deletes CSR accounts.
+
+The customer data is generated as coherent timelines, so it behaves like the
+real thing: subscriptions are billed on their own day each month and every
+charge lands just after its billing date, deactivated accounts have nothing
+live and nothing after they were deactivated, transfers hand the billing
+schedule to another vehicle, and single washes only happen on vehicles that
+aren't covered by a subscription. These rules are checked by
+[`seed-data.spec.ts`](apps/api/prisma/seed-data.spec.ts).
 
 ```bash
 npm test        # all workspaces
