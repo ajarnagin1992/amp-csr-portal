@@ -80,9 +80,17 @@ erDiagram
 
 ## Notes
 
+### Key Decisions:
+1. Nothing is deleted. Users and plans are retired by setting `status` to `DISABLED`, and subscriptions end as `CANCELLED` or `TRANSFERRED`. A disabled user can't be given a new or transferred subscription.
+2. Subscription history is a list of rows per vehicle, ordered by the indexed `(vehicle_id, created_at)`. Where only the latest subscription is needed, take the top result. The proposed revision replaces this with dated coverage rows.
+3. Purchases link to the user and vehicle, and to the subscription when it was a subscription charge. They carry a description of what was bought and the amount actually charged.
+4. Amounts of money are stored in cents.
+5. Plan price lives only on `PLANS` and is not copied onto subscriptions, so a price change applies to every member. Emailing members about a change is intended but not implemented.
+6. A transfer only moves a subscription between vehicles of the same customer. It marks the old subscription `TRANSFERRED` and creates a new one on the target vehicle.
+7. `CSR_USERS` exists for portal login and for recording who did what. Both are out of scope, so the table is currently unused.
+
 ### Rules not enforced by diagram
 - Vehicles being one to many is correct for the model, as many subscriptions may associate to a vehicle over time, but each vehicle may only have at most 1 ACTIVE or OVERDUE subscription. This is enforced in the service layer (after vehicles have been pulled). This is enforced via a partial unique index over subscriptions table, which will prevent racing create/transfer requests.
-- CSR_USERS was added to support authentication and event logging. Table is orphaned right now, because event logging and authentication are out of scope.
 
 ### Out of Scope Improvements
 All four are addressed together by the [Proposed Revision](#proposed-revision) below.
