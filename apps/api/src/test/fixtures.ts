@@ -20,6 +20,7 @@ const CREATED_AT = new Date('2026-01-01T00:00:00.000Z');
 export const planRow: Plan = {
   id: 1,
   name: 'Unlimited Monthly',
+  description: 'Unlimited exterior washes',
   price: 2999,
   status: 'ACTIVE',
   createdAt: CREATED_AT,
@@ -29,6 +30,7 @@ export const planRow: Plan = {
 export const planDto: PlanDto = {
   id: 1,
   name: 'Unlimited Monthly',
+  description: 'Unlimited exterior washes',
   price: 2999,
   status: 'ACTIVE',
 };

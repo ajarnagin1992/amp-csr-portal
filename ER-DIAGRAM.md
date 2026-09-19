@@ -31,6 +31,7 @@ erDiagram
     PLANS{
         int id PK
         string name
+        string description
         int price "cents"
         enum status "ACTIVE | DISABLED"
         datetime created_at

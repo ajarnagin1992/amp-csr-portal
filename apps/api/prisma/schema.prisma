@@ -88,6 +88,7 @@ model Vehicle {
 model Plan {
   id          Int        @id @default(autoincrement())
   name        String
+  description String     @default("")
   price       Int
   status      PlanStatus @default(ACTIVE)
   createdAt   DateTime   @default(now()) @map("created_at")

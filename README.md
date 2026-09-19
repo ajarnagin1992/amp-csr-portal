@@ -27,11 +27,13 @@ moving a subscription to a new vehicle, and accounts blocked by a failed payment
 | Remove a subscription | Per-vehicle **End Subscription**, with confirmation |
 | Transfer a subscription | Per-vehicle **Transfer**, targeting another vehicle on the account |
 | Deactivate / reactivate an account | Account-level action, for "I want to cancel" |
+| *Bonus:* Edit plans | `/plans` — create a plan, edit its name, description and price, enable or disable it |
 
 Guardrails worth noting: a vehicle can't hold two active subscriptions, a
 subscription can't transfer to a vehicle owned by a different customer, and
 disabled plans can't be subscribed to. Each is enforced in the API, not just
-the UI.
+the UI. Disabling a plan only closes it to new subscriptions; members already
+on it keep it.
 
 ## Architecture
 
@@ -72,7 +74,9 @@ npm run typecheck
 | `PATCH` | `/users/:id` | update account info |
 | `DELETE` | `/users/:id` | deactivate |
 | `POST` | `/users/:id/reactivate` | |
-| `GET` | `/plans` | |
+| `GET` | `/plans` | active plans; `?includeDisabled=true` for all |
+| `POST` | `/plans` | create a plan |
+| `PATCH` | `/plans/:id` | edit name, description, price, or status |
 | `POST` | `/subscriptions` | |
 | `DELETE` | `/subscriptions/:id` | cancel |
 | `POST` | `/subscriptions/:id/transfer` | |

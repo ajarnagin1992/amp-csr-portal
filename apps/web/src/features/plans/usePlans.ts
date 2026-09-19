@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
+import type { GetPlansRequestDto } from '@amp-csr/shared';
 import { getPlans } from '../../api/plans.js';
 
-export function usePlans() {
+// Active plans only unless includeDisabled is set — the subscription picker must never offer a disabled plan.
+export function usePlans({ includeDisabled = false }: GetPlansRequestDto = {}) {
   return useQuery({
-    queryKey: ['plans'],
-    queryFn: getPlans,
+    queryKey: ['plans', { includeDisabled }],
+    queryFn: () => getPlans({ includeDisabled }),
   });
 }

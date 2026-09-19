@@ -7,6 +7,7 @@ const validSubscription = {
   plan: {
     id: 1,
     name: 'Unlimited Wash',
+    description: 'Unlimited exterior washes',
     price: 29.99,
     status: 'ACTIVE',
   },

@@ -1,6 +1,7 @@
 import type {
   ListUsersResponseDto,
   MobileUserDto,
+  PlanDto,
   PurchaseDto,
   SubscriptionDto,
   UserDetailDto,
@@ -31,9 +32,20 @@ export const validSubscription: SubscriptionDto = {
   plan: {
     id: 1,
     name: 'Unlimited Monthly',
+    description: 'Unlimited exterior washes',
     price: 2999,
     status: 'ACTIVE',
   },
+};
+
+export const validPlan: PlanDto = validSubscription.plan;
+
+export const disabledPlan: PlanDto = {
+  id: 2,
+  name: 'Legacy Wash Plan',
+  description: '',
+  price: 1500,
+  status: 'DISABLED',
 };
 
 export const validVehicle: VehicleDto = {

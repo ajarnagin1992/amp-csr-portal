@@ -37,6 +37,24 @@ describe('usePlans', () => {
     expect(result.current.data).toEqual(plans);
   });
 
+  it('requests active plans only by default', async () => {
+    vi.mocked(getPlans).mockResolvedValue([]);
+
+    const { result } = renderHook(() => usePlans(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getPlans).toHaveBeenCalledWith({ includeDisabled: false });
+  });
+
+  it('requests every plan when includeDisabled is set', async () => {
+    vi.mocked(getPlans).mockResolvedValue([]);
+
+    const { result } = renderHook(() => usePlans({ includeDisabled: true }), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getPlans).toHaveBeenCalledWith({ includeDisabled: true });
+  });
+
   it('surfaces the error on failure', async () => {
     vi.mocked(getPlans).mockRejectedValue(new Error('network down'));
 

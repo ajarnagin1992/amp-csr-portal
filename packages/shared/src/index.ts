@@ -9,3 +9,6 @@ export * from "./schemas/update-user.schema.js";
 export * from "./schemas/create-subscription.schema.js";
 export * from "./schemas/transfer-subscription.schema.js";
 export * from "./schemas/get-users.schema.js";
+export * from "./schemas/get-plans.schema.js";
+export * from "./schemas/create-plan.schema.js";
+export * from "./schemas/update-plan.schema.js";

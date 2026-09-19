@@ -34,10 +34,15 @@ function buildUser(index: number) {
 }
 
 const PLANS = [
-  { name: 'Basic Wash', price: 900, status: 'ACTIVE' as const },
-  { name: 'Premium Wash', price: 1900, status: 'ACTIVE' as const },
-  { name: 'Unlimited Deluxe', price: 2900, status: 'ACTIVE' as const },
-  { name: 'Legacy Wash Plan', price: 1500, status: 'DISABLED' as const },
+  { name: 'Basic Wash', description: 'Exterior wash and dry, once a day', price: 900, status: 'ACTIVE' as const },
+  { name: 'Premium Wash', description: 'Exterior wash, wax, and wheel shine, once a day', price: 1900, status: 'ACTIVE' as const },
+  {
+    name: 'Unlimited Deluxe',
+    description: 'Every wash, every day, including interior vacuum and ceramic sealant',
+    price: 2900,
+    status: 'ACTIVE' as const,
+  },
+  { name: 'Legacy Wash Plan', description: 'Retired plan, kept for existing members', price: 1500, status: 'DISABLED' as const },
 ];
 
 const VEHICLE_MODELS = [

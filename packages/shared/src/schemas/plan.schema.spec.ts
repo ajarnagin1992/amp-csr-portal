@@ -3,6 +3,7 @@ import { planSchema } from './plan.schema.js';
 const validPlan = {
   id: 1,
   name: 'Unlimited Wash',
+  description: 'Unlimited exterior washes',
   price: 29.99,
   status: 'ACTIVE',
 };
@@ -30,6 +31,15 @@ describe('planSchema', () => {
 
   it('rejects a missing name', () => {
     const { name, ...rest } = validPlan;
+    expect(planSchema.safeParse(rest).success).toBe(false);
+  });
+
+  it('accepts an empty description', () => {
+    expect(planSchema.safeParse({ ...validPlan, description: '' }).success).toBe(true);
+  });
+
+  it('rejects a missing description', () => {
+    const { description, ...rest } = validPlan;
     expect(planSchema.safeParse(rest).success).toBe(false);
   });
 

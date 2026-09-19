@@ -6,6 +6,7 @@ import { subscriptionSchema } from './subscription.schema.js';
 const validPlan = {
   id: 1,
   name: 'Unlimited Monthly',
+  description: 'Unlimited exterior washes',
   price: 2999,
   status: 'ACTIVE',
 };
