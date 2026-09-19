@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -130,5 +131,7 @@ model Subscription {
   purchases Purchase[]
 
   @@index([vehicleId, createdAt])
+  // A vehicle can have at most one live (ACTIVE or OVERDUE) subscription.
+  @@unique([vehicleId], where: raw("status IN ('ACTIVE', 'OVERDUE')"), map: "subscriptions_vehicle_id_live_key")
   @@map("subscriptions")
 }
