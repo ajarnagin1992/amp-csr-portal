@@ -65,7 +65,17 @@ export class UsersService {
     return toUserDetailDto({ ...user, vehicles, purchases });
   }
 
+  // Account details are frozen while an account is disabled: a disabled account is the
+  // record of what it looked like when it was closed, and editing it would rewrite that.
   async update(id: number, data: UpdateUserDto): Promise<MobileUserDto> {
+    const existing = await this.prisma.mobileUser.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`User ${id} not found`);
+    }
+    if (existing.status === 'DISABLED') {
+      throw new ConflictException(`User ${id} is disabled; reactivate the account before editing it`);
+    }
+
     try {
       return toMobileUserDto(await this.prisma.mobileUser.update({ where: { id }, data }));
     } catch (error) {

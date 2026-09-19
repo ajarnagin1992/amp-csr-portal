@@ -14,7 +14,15 @@ import type { MobileUserDto, VehicleDto } from '@amp-csr/shared';
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['ACTIVE', 'OVERDUE']);
 
-function SubscriptionActions({ vehicle, allVehicles }: { vehicle: VehicleDto; allVehicles: VehicleDto[] }) {
+function SubscriptionActions({
+  vehicle,
+  allVehicles,
+  accountDisabled,
+}: {
+  vehicle: VehicleDto;
+  allVehicles: VehicleDto[];
+  accountDisabled: boolean;
+}) {
   const [isAdding, setIsAdding] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
@@ -28,6 +36,17 @@ function SubscriptionActions({ vehicle, allVehicles }: { vehicle: VehicleDto; al
 
   const subscription = vehicle.subscription;
   const hasActiveSubscription = !!subscription && ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status);
+
+  // Mirrors the API guard: subscriptions can't be added or moved on a disabled account.
+  // Showing the reason beats greying out buttons with no explanation on a support call.
+  if (accountDisabled) {
+    return (
+      <Text size="xs" c="dimmed">
+        Reactivate account to manage
+      </Text>
+    );
+  }
+
   const transferTargets = allVehicles.filter(
     (v) => v.id !== vehicle.id && !(v.subscription && ACTIVE_SUBSCRIPTION_STATUSES.has(v.subscription.status)),
   );
@@ -178,6 +197,7 @@ function AccountInfo({ data }: { data: MobileUserDto }) {
   const { mutate, isError, error } = useUpdateUser(data.id);
   const deactivateUser = useDeactivateUser();
   const reactivateUser = useReactivateUser();
+  const isDisabled = data.status === 'DISABLED';
 
   function startEditing() {
     setFirstName(data.firstName);
@@ -245,11 +265,18 @@ function AccountInfo({ data }: { data: MobileUserDto }) {
         </Table.Tbody>
       </Table>
       <Group>
-        <Button onClick={startEditing}>Edit</Button>
+        <Button onClick={startEditing} disabled={isDisabled}>
+          Edit
+        </Button>
         <Button color="red" onClick={() => setIsConfirmingStatus(true)}>
           {data.status === 'ACTIVE' ? 'Deactivate account' : 'Reactivate account'}
         </Button>
       </Group>
+      {isDisabled && (
+        <Text size="sm" c="dimmed">
+          This account is disabled. Reactivate it to edit details or manage subscriptions.
+        </Text>
+      )}
       <Modal
         opened={isConfirmingStatus}
         onClose={() => setIsConfirmingStatus(false)}
@@ -322,7 +349,11 @@ export function UserProperties() {
                   <Table.Td>{vehicle.subscription?.status ?? '—'}</Table.Td>
                   <Table.Td>{formatDate(vehicle.subscription?.nextBillingDate)}</Table.Td>
                   <Table.Td>
-                    <SubscriptionActions vehicle={vehicle} allVehicles={data.vehicles} />
+                    <SubscriptionActions
+                      vehicle={vehicle}
+                      allVehicles={data.vehicles}
+                      accountDisabled={data.status === 'DISABLED'}
+                    />
                   </Table.Td>
                 </Table.Tr>
               ))}

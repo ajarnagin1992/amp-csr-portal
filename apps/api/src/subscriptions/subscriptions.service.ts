@@ -19,6 +19,19 @@ export class SubscriptionsService {
       throw new BadRequestException('Cannot subscribe to a disabled plan');
     }
 
+    const vehicle = await this.prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+      include: { mobileUser: true },
+    });
+    if (!vehicle) {
+      throw new NotFoundException(`Vehicle ${vehicleId} not found`);
+    }
+    if (vehicle.mobileUser.status === 'DISABLED') {
+      throw new ConflictException(
+        `User ${vehicle.mobileUserId} is disabled; reactivate the account before adding a subscription`,
+      );
+    }
+
     const current = await this.prisma.subscription.findFirst({
       where: { vehicleId },
       orderBy: { createdAt: 'desc' },
@@ -74,10 +87,22 @@ export class SubscriptionsService {
   async transfer(id: number, newVehicleId: number): Promise<SubscriptionDto> {
     const subscription = await this.prisma.subscription.findUnique({
       where: { id },
-      include: { vehicle: true },
+      include: { vehicle: { include: { mobileUser: true } } },
     });
     if (!subscription) {
       throw new NotFoundException(`Subscription ${id} not found`);
+    }
+
+    // Without this, a CANCELLED subscription could be transferred into a brand new ACTIVE one —
+    // which is how a disabled account (deactivate cancels its subscriptions) got billing back.
+    if (TERMINAL_STATUSES_SUBSCRIPTION.has(subscription.status)) {
+      throw new ConflictException(`Subscription ${id} is ${subscription.status} and cannot be transferred`);
+    }
+
+    if (subscription.vehicle.mobileUser.status === 'DISABLED') {
+      throw new ConflictException(
+        `User ${subscription.vehicle.mobileUserId} is disabled; reactivate the account before transferring a subscription`,
+      );
     }
 
     const targetVehicle = await this.prisma.vehicle.findUnique({ where: { id: newVehicleId } });

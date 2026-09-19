@@ -293,4 +293,34 @@ describe('UserProperties', () => {
       expect(deactivateUser).not.toHaveBeenCalled();
     });
   });
+
+  describe('when the account is disabled', () => {
+    beforeEach(() => {
+      vi.mocked(getUser).mockResolvedValue({ ...validUserDetail, status: 'DISABLED' });
+    });
+
+    it('disables the Edit button, so account details cannot be changed', async () => {
+      renderUserProperties();
+
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(screen.getByRole('button', { name: /^edit$/i })).toBeDisabled();
+    });
+
+    it('explains why the account cannot be edited', async () => {
+      renderUserProperties();
+
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(screen.getByText(/reactivate it to edit details or manage subscriptions/i)).toBeInTheDocument();
+    });
+
+    it('offers no subscription actions on the account vehicles', async () => {
+      renderUserProperties();
+
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      expect(screen.queryByRole('button', { name: /add subscription/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /transfer/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /end subscription/i })).not.toBeInTheDocument();
+      expect(screen.getByText(/reactivate account to manage/i)).toBeInTheDocument();
+    });
+  });
 });

@@ -4,7 +4,7 @@ import { SubscriptionsService } from './subscriptions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma, type Plan, type Subscription, type Vehicle } from '../generated/prisma/client.js';
 import type { SubscriptionWithPlan } from '../common/mappers/subscription.mapper.js';
-import { planRow, subscriptionDto, subscriptionRow } from '../test/fixtures.js';
+import { planRow, subscriptionDto, subscriptionRow, userRow, vehicleRow } from '../test/fixtures.js';
 
 describe('SubscriptionsService', () => {
   let subscriptionsService: SubscriptionsService;
@@ -13,7 +13,8 @@ describe('SubscriptionsService', () => {
       findUnique: (args: Prisma.PlanFindUniqueArgs) => Promise<Plan | undefined>;
     };
     vehicle: {
-      findUnique: (args: Prisma.VehicleFindUniqueArgs) => Promise<Vehicle | undefined>;
+      // create() loads the vehicle with its owner, so this is wider than Vehicle.
+      findUnique: (args: Prisma.VehicleFindUniqueArgs) => Promise<unknown>;
     };
     subscription: {
       findFirst: (args: Prisma.SubscriptionFindFirstArgs) => Promise<Subscription | undefined>;
@@ -40,9 +41,14 @@ describe('SubscriptionsService', () => {
   });
 
   describe('create', () => {
+    const activeOwnerVehicle = { ...vehicleRow, id: 10, mobileUserId: 1, mobileUser: userRow };
+
     beforeEach(() => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+      // create() resolves the vehicle's owner before anything else, to refuse
+      // adding a subscription to a disabled account.
+      vi.mocked(prisma.vehicle.findUnique).mockResolvedValue(activeOwnerVehicle);
     });
 
     afterEach(() => {
@@ -55,6 +61,25 @@ describe('SubscriptionsService', () => {
       vi.mocked(prisma.subscription.create).mockResolvedValue(subscriptionRow);
 
       await expect(subscriptionsService.create(10, planRow.id)).resolves.toEqual(subscriptionDto);
+    });
+
+    it('throws NotFoundException when the vehicle does not exist, without creating', async () => {
+      vi.mocked(prisma.plan.findUnique).mockResolvedValue(planRow);
+      vi.mocked(prisma.vehicle.findUnique).mockResolvedValue(null);
+
+      await expect(subscriptionsService.create(10, planRow.id)).rejects.toThrow(NotFoundException);
+      expect(prisma.subscription.create).not.toHaveBeenCalled();
+    });
+
+    it('throws ConflictException when the vehicle owner is disabled, without creating', async () => {
+      vi.mocked(prisma.plan.findUnique).mockResolvedValue(planRow);
+      vi.mocked(prisma.vehicle.findUnique).mockResolvedValue({
+        ...activeOwnerVehicle,
+        mobileUser: { ...userRow, status: 'DISABLED' },
+      });
+
+      await expect(subscriptionsService.create(10, planRow.id)).rejects.toThrow(ConflictException);
+      expect(prisma.subscription.create).not.toHaveBeenCalled();
     });
 
     it('drops the columns that are not part of the subscription contract', async () => {
@@ -199,9 +224,28 @@ describe('SubscriptionsService', () => {
       id: 1,
       planId: 5,
       vehicleId: 10,
-      vehicle: { id: 10, mobileUserId: 100 },
+      vehicle: { id: 10, mobileUserId: 100, mobileUser: { ...userRow, id: 100 } },
     };
     const targetVehicle = { id: 20, mobileUserId: 100 } as Vehicle;
+
+    it('throws ConflictException when the subscription is already terminal, without transferring', async () => {
+      // Otherwise a CANCELLED subscription transfers into a fresh ACTIVE one, which is how a
+      // disabled account (whose subscriptions deactivate() cancelled) got billing back.
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue({ ...subscription, status: 'CANCELLED' });
+
+      await expect(subscriptionsService.transfer(1, 20)).rejects.toThrow(ConflictException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws ConflictException when the owner is disabled, without transferring', async () => {
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue({
+        ...subscription,
+        vehicle: { ...subscription.vehicle, mobileUser: { ...userRow, id: 100, status: 'DISABLED' } },
+      });
+
+      await expect(subscriptionsService.transfer(1, 20)).rejects.toThrow(ConflictException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
 
     it('marks the old subscription TRANSFERRED and returns the new one as a SubscriptionDto', async () => {
       const newSubscription = { ...subscriptionRow, id: 2, vehicleId: 20, planId: 5 };

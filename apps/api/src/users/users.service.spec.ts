@@ -250,6 +250,25 @@ describe('UsersService', () => {
   });
 
   describe('update', () => {
+    // update() now reads the account first, to refuse edits on a disabled one.
+    beforeEach(() => {
+      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue(userRow);
+    });
+
+    it('throws NotFoundException when the account does not exist, without updating', async () => {
+      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue(null);
+
+      await expect(usersService.update(999, { firstName: 'Jane' })).rejects.toThrow(NotFoundException);
+      expect(prisma.mobileUser.update).not.toHaveBeenCalled();
+    });
+
+    it('throws ConflictException when the account is disabled, without updating', async () => {
+      vi.mocked(prisma.mobileUser.findUnique).mockResolvedValue({ ...userRow, status: 'DISABLED' });
+
+      await expect(usersService.update(1, { firstName: 'Janet' })).rejects.toThrow(ConflictException);
+      expect(prisma.mobileUser.update).not.toHaveBeenCalled();
+    });
+
     it('updates the user and returns the updated record as a MobileUserDto', async () => {
       vi.mocked(prisma.mobileUser.update).mockResolvedValue({ ...userRow, firstName: 'Janet' });
 
