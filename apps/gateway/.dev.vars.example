@@ -1,0 +1,2 @@
+# Copy to .dev.vars for `wrangler dev`. Must match GATEWAY_SECRET on the API.
+GATEWAY_SECRET=dev-only-secret

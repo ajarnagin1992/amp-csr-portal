@@ -8,6 +8,7 @@ export default defineConfig({
 			miniflare: {
 				bindings: {
 					API_ORIGIN: "https://backend.example",
+					GATEWAY_SECRET: "test-gateway-secret",
 				},
 			},
 		}),

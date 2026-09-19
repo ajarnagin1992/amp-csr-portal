@@ -102,6 +102,13 @@ transfer preserves billing history instead of splitting it across two rows.
 
 - **API** — Render, via [`render.yaml`](render.yaml). Migrations run at build
   time; seeding is run by hand so deploys don't wipe data.
+- **API access** — the API only accepts requests that carry the gateway's
+  `X-Gateway-Secret` header (`GATEWAY_SECRET` on Render and on the Worker, which
+  must match). Direct hits to the onrender.com URL get 401; only `GET /` (the
+  health check) is public. To rotate: set the new value as `GATEWAY_SECRET` on
+  Render with the old one as `GATEWAY_SECRET_PREVIOUS`, run
+  `wrangler secret put GATEWAY_SECRET` in `apps/gateway`, then remove
+  `GATEWAY_SECRET_PREVIOUS`.
 - **Portal** — Cloudflare Workers, via
   [`.github/workflows/deploy-cloudflare.yml`](.github/workflows/deploy-cloudflare.yml),
   gated on CI passing.

@@ -31,6 +31,20 @@ describe("gateway worker", () => {
 		expect(forwardedRequest.url).toBe("https://backend.example/users");
 	});
 
+	it("adds the gateway secret, overwriting any value the client sent", async () => {
+		const fetchSpy = makeFetchSpy(async () => new Response("ok"));
+		vi.stubGlobal("fetch", fetchSpy);
+
+		await callWorker(
+			new IncomingRequest("https://gateway.example/api/users", {
+				headers: { "X-Gateway-Secret": "spoofed" },
+			}),
+		);
+
+		const forwardedRequest = fetchSpy.mock.calls[0][0];
+		expect(forwardedRequest.headers.get("X-Gateway-Secret")).toBe("test-gateway-secret");
+	});
+
 	it("preserves the query string when proxying", async () => {
 		const fetchSpy = makeFetchSpy(async () => new Response("ok"));
 		vi.stubGlobal("fetch", fetchSpy);
