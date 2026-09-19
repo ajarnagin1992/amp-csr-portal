@@ -6,10 +6,10 @@ moving a subscription to a new vehicle, and accounts blocked by a failed payment
 
 ## Live
 
-| | |
+| Asset | URL |
 |---|---|
 | **Portal** | https://amp-csr-gateway.ajarnagin1992.workers.dev |
-| **API** | https://amp-csr-api.onrender.com |
+| **API** | https://amp-csr-api.onrender.com (not for direct use: requests that don't come through the portal get `401`, see [Deployment](#deployment)) |
 | **Repo** | https://github.com/ajarnagin1992/amp-csr-portal |
 
 ### Note for the assessor: Render cold starts
@@ -56,8 +56,14 @@ Cloudflare Worker  ──  serves the built React SPA
 - **apps/web** — React 19, Vite, Mantine + Tailwind, TanStack Query, React Router
 - **apps/api** — NestJS, Prisma 7
 - **apps/gateway** — Cloudflare Worker: static assets + `/api` reverse proxy
+  that adds an `X-Gateway-Secret` header to every request it forwards
 - **packages/shared** — Zod schemas shared by both sides; DTO types are inferred
   from them, so the client and server can't drift
+
+The API is only reachable through the Worker. A global guard in the API
+([`gateway-secret.guard.ts`](apps/api/src/common/guards/gateway-secret.guard.ts))
+rejects any request without the matching secret, so the public onrender.com URL
+can't be used to bypass the portal.
 
 ## Running locally
 
@@ -68,6 +74,11 @@ npm --prefix apps/api run prisma:migrate
 npm --prefix apps/api run prisma:seed    # ~45 customers with vehicles and history
 npm run dev                              # api :3000, web :5173
 ```
+
+Locally the gateway check is off: with no `GATEWAY_SECRET` set, the API accepts
+any request, since `npm run dev` proxies straight to it without going through the
+Worker. To exercise the Worker path, set the same `GATEWAY_SECRET` in
+`apps/api/.env` and in `apps/gateway/.dev.vars` (see `.dev.vars.example`).
 
 ```bash
 npm test        # all workspaces
