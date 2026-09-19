@@ -45,6 +45,34 @@ describe("gateway worker", () => {
 		expect(forwardedRequest.headers.get("X-Gateway-Secret")).toBe("test-gateway-secret");
 	});
 
+	it("forwards the session cookie to the API", async () => {
+		const fetchSpy = makeFetchSpy(async () => new Response("ok"));
+		vi.stubGlobal("fetch", fetchSpy);
+
+		await callWorker(
+			new IncomingRequest("https://gateway.example/api/users", {
+				headers: { Cookie: "csr_session=abc123" },
+			}),
+		);
+
+		const forwardedRequest = fetchSpy.mock.calls[0][0];
+		expect(forwardedRequest.headers.get("Cookie")).toBe("csr_session=abc123");
+	});
+
+	it("returns the API's Set-Cookie to the browser untouched", async () => {
+		const setCookie = "csr_session=abc123; Path=/; HttpOnly; SameSite=Strict";
+		vi.stubGlobal(
+			"fetch",
+			makeFetchSpy(async () => new Response("{}", { headers: { "Set-Cookie": setCookie } })),
+		);
+
+		const response = await callWorker(
+			new IncomingRequest("https://gateway.example/api/auth/login", { method: "POST" }),
+		);
+
+		expect(response.headers.get("Set-Cookie")).toBe(setCookie);
+	});
+
 	it("preserves the query string when proxying", async () => {
 		const fetchSpy = makeFetchSpy(async () => new Response("ok"));
 		vi.stubGlobal("fetch", fetchSpy);

@@ -41,5 +41,8 @@ services:
         value: "24"
       - key: DATABASE_URL
         sync: false
+      # Must match the Worker's GATEWAY_SECRET (`wrangler secret put`). The API
+      # refuses to boot without it, and rejects requests that lack it, so it
+      # only accepts traffic proxied through the Cloudflare gateway.
       - key: GATEWAY_SECRET
         sync: false

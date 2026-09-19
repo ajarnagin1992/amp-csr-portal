@@ -1,4 +1,5 @@
 import type {
+  CsrUserDto,
   MobileUserDto,
   PlanDto,
   PurchaseDto,
@@ -6,7 +7,7 @@ import type {
   UserDetailDto,
   VehicleDto,
 } from '@amp-csr/shared';
-import type { MobileUser, Plan, Vehicle } from '../generated/prisma/client.js';
+import type { CsrUser, MobileUser, Plan, Vehicle } from '../generated/prisma/client.js';
 import type { MobileUserWithDetail } from '../common/mappers/mobile-user.mapper.js';
 import type { PurchaseWithVehicle } from '../common/mappers/purchase.mapper.js';
 import type { SubscriptionWithPlan } from '../common/mappers/subscription.mapper.js';
@@ -143,4 +144,19 @@ export const userDetailDto: UserDetailDto = {
   ...userDto,
   vehicles: [vehicleDto],
   purchases: [purchaseDto],
+};
+
+export const csrUserRow: CsrUser = {
+  id: 1,
+  username: 'csr',
+  email: 'csr@example.com',
+  passwordHash: 'scrypt$32768$8$3$c2FsdA==$aGFzaA==',
+  status: 'ACTIVE',
+  createdAt: CREATED_AT,
+};
+
+export const csrUserDto: CsrUserDto = {
+  id: 1,
+  username: 'csr',
+  email: 'csr@example.com',
 };
