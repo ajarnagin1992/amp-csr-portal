@@ -1,8 +1,8 @@
 import { test as base } from '@playwright/test'
-import { FakeApi } from './fakeApi.js'
+import { CSR, CSR_PASSWORD, FakeApi } from './fakeApi.js'
 
 export { expect } from '@playwright/test'
-export { FakeApi }
+export { CSR, CSR_PASSWORD, FakeApi }
 
 /**
  * The portal's QueryClient keeps React Query's default of three retries with exponential backoff

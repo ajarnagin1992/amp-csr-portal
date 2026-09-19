@@ -5,9 +5,11 @@ import {
   createSubscriptionSchema,
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
+  loginSchema,
   transferSubscriptionSchema,
   updatePlanSchema,
   updateUserSchema,
+  type CsrUserDto,
   type MobileUserDto,
   type PlanDto,
   type SubscriptionDto,
@@ -17,6 +19,10 @@ import { createSeed, type Store, type SubscriptionRecord } from './seed.js'
 
 const LIVE = new Set<SubscriptionRecord['status']>(['ACTIVE', 'OVERDUE'])
 const TERMINAL = new Set<SubscriptionRecord['status']>(['CANCELLED', 'TRANSFERRED'])
+
+/** The one CSR the fake knows; `login` succeeds only with this email and password. */
+export const CSR: CsrUserDto = { id: 1, username: 'csr', email: 'csr@example.com' }
+export const CSR_PASSWORD = 'correct-horse'
 
 class HttpError extends Error {
   readonly status: number
@@ -76,9 +82,15 @@ export class FakeApi {
   /** Every API call the browser made, in order. Lets a test assert what went over the wire. */
   readonly requests: RecordedRequest[] = []
 
+  /** Whether the browser holds a session. Starts true so tests open on the portal, not the login page. */
+  signedIn = true
+
   private readonly failures: Failure[] = []
   private seq = 100
   private readonly routes: Array<[method: string, pattern: RegExp, handler: Handler]> = [
+    ['GET', /^\/auth\/me$/, () => this.currentCsr()],
+    ['POST', /^\/auth\/login$/, (ctx) => this.login(ctx)],
+    ['POST', /^\/auth\/logout$/, () => this.logout()],
     ['GET', /^\/users$/, (ctx) => this.listUsers(ctx)],
     ['GET', /^\/users\/(\d+)$/, (ctx) => this.getUser(ctx)],
     ['PATCH', /^\/users\/(\d+)$/, (ctx) => this.updateUser(ctx)],
@@ -119,6 +131,11 @@ export class FakeApi {
       return route.fulfill({ status: failure.status, json: { statusCode: failure.status, message: 'Injected failure' } })
     }
 
+    // Like the real API, everything but the auth endpoints needs a session.
+    if (!this.signedIn && !path.startsWith('/auth/')) {
+      return route.fulfill({ status: 401, json: { statusCode: 401, message: 'Unauthorized' } })
+    }
+
     for (const [routeMethod, pattern, handler] of this.routes) {
       const match = method === routeMethod ? pattern.exec(path) : undefined
       if (!match) continue
@@ -132,6 +149,25 @@ export class FakeApi {
     }
 
     return route.fulfill({ status: 404, json: { statusCode: 404, message: `No fake for ${method} ${path}` } })
+  }
+
+  // ---- auth -------------------------------------------------------------------------------
+
+  private currentCsr(): Reply {
+    if (!this.signedIn) throw new HttpError(401, 'Unauthorized')
+    return { status: 200, body: CSR }
+  }
+
+  private login({ body }: Ctx): Reply {
+    const { email, password } = parseWith(loginSchema, body)
+    if (email !== CSR.email || password !== CSR_PASSWORD) throw new HttpError(401, 'Invalid credentials')
+    this.signedIn = true
+    return { status: 200, body: CSR }
+  }
+
+  private logout(): Reply {
+    this.signedIn = false
+    return { status: 204 }
   }
 
   // ---- users ------------------------------------------------------------------------------
