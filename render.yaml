@@ -18,7 +18,10 @@ services:
     runtime: node
     plan: free
     branch: master
-    autoDeploy: true
+    # Deploy only once the GitHub checks on the commit (ci.yml: lint,
+    # typecheck, tests, build) have passed. Build-time migrations run against
+    # the live database, so a red commit must not reach that step.
+    autoDeployTrigger: checksPass
 
     # Migrations run at build time so the schema is current before the new
     # instance starts serving. Seeding is deliberately NOT here: seed.ts
