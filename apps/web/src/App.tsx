@@ -1,9 +1,16 @@
 import { Link, Route, Routes } from 'react-router-dom'
+import { Button } from '@mantine/core'
 import { UsersList } from './features/users/UsersList.js'
 import { UserProperties } from './features/users/UserProperties.js'
 import { PlansEditor } from './features/plans/PlansEditor.js'
+import { AuthGate } from './features/auth/AuthGate.js'
+import { useCurrentCsr } from './features/auth/useCurrentCsr.js'
+import { useLogout } from './features/auth/useLogout.js'
 
-function App() {
+function Portal() {
+  const { data: csr } = useCurrentCsr()
+  const logout = useLogout()
+
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
@@ -19,6 +26,17 @@ function App() {
               Plans
             </Link>
           </nav>
+          <div className="ml-auto flex items-center gap-3 text-sm text-slate-600">
+            {logout.isError && (
+              <span role="alert" className="text-red-600">
+                Sign out failed
+              </span>
+            )}
+            <span>{csr?.username}</span>
+            <Button variant="default" size="xs" onClick={() => logout.mutate()} loading={logout.isPending}>
+              Sign out
+            </Button>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8">
@@ -29,6 +47,14 @@ function App() {
         </Routes>
       </main>
     </div>
+  )
+}
+
+function App() {
+  return (
+    <AuthGate>
+      <Portal />
+    </AuthGate>
   )
 }
 

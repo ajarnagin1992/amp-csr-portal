@@ -1,6 +1,8 @@
 import 'dotenv/config';
+import { randomBytes } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
+import { hashPassword } from '../src/auth/password.js';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
@@ -98,7 +100,32 @@ function purchaseStatusFor(monthIndex: number): 'SUCCESS' | 'FAILURE' | 'REFUNDE
   return 'SUCCESS';
 }
 
+// The seed never deletes CSR users, so re-seeding the demo data doesn't lock
+// anyone out. SEED_CSR_PASSWORD sets (or resets) the password; without it, a
+// new CSR gets a random one that's printed once, and an existing CSR keeps theirs.
+async function seedCsrUser() {
+  const email = 'csr@example.com';
+  const password = process.env.SEED_CSR_PASSWORD;
+  const existing = await prisma.csrUser.findUnique({ where: { email } });
+
+  if (existing && !password) {
+    console.log(`CSR ${email} already exists; password unchanged (set SEED_CSR_PASSWORD to reset it).`);
+    return;
+  }
+
+  const chosen = password ?? randomBytes(9).toString('base64url');
+  const passwordHash = await hashPassword(chosen);
+  await prisma.csrUser.upsert({
+    where: { email },
+    update: { passwordHash, status: 'ACTIVE' },
+    create: { username: 'csr', email, passwordHash },
+  });
+  console.log(password ? `Set the password for CSR ${email}.` : `Created CSR ${email} with password: ${chosen}`);
+}
+
 async function main() {
+  await seedCsrUser();
+
   const users = [];
   for (let i = 0; i < USER_COUNT; i++) {
     const user = buildUser(i);

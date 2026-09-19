@@ -12,3 +12,5 @@ export * from "./schemas/get-users.schema.js";
 export * from "./schemas/get-plans.schema.js";
 export * from "./schemas/create-plan.schema.js";
 export * from "./schemas/update-plan.schema.js";
+export * from "./schemas/login.schema.js";
+export * from "./schemas/csr-user.schema.js";

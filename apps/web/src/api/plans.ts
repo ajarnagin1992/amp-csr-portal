@@ -8,6 +8,7 @@ import {
   type UpdatePlanDto,
 } from '@amp-csr/shared';
 
+import { apiFetch } from './apiFetch.js';
 import { apiUrl } from './apiUrl.js';
 
 const plansResponseSchema = z.array(planSchema);
@@ -17,7 +18,7 @@ export async function getPlans(params: GetPlansRequestDto = {}): Promise<PlanDto
   const url = apiUrl('/plans');
   if (includeDisabled) url.searchParams.set('includeDisabled', 'true');
 
-  const response = await fetch(url);
+  const response = await apiFetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch plans: ${response.status}`);
   }
@@ -29,7 +30,7 @@ export async function getPlans(params: GetPlansRequestDto = {}): Promise<PlanDto
 export async function createPlan(data: CreatePlanDto): Promise<PlanDto> {
   const url = apiUrl('/plans');
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -45,7 +46,7 @@ export async function createPlan(data: CreatePlanDto): Promise<PlanDto> {
 export async function updatePlan(id: number, data: UpdatePlanDto): Promise<PlanDto> {
   const url = apiUrl(`/plans/${id}`);
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),

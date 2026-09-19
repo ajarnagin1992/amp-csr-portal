@@ -71,7 +71,7 @@ can't be used to bypass the portal.
 npm ci
 cp apps/api/.env.example apps/api/.env   # point DATABASE_URL at your Postgres
 npm --prefix apps/api run prisma:migrate
-npm --prefix apps/api run prisma:seed    # ~45 customers with vehicles and history
+npm --prefix apps/api run prisma:seed    # ~45 customers, plus a CSR: csr@example.com
 npm run dev                              # api :3000, web :5173
 ```
 
@@ -79,6 +79,10 @@ Locally the gateway check is off: with no `GATEWAY_SECRET` set, the API accepts
 any request, since `npm run dev` proxies straight to it without going through the
 Worker. To exercise the Worker path, set the same `GATEWAY_SECRET` in
 `apps/api/.env` and in `apps/gateway/.dev.vars` (see `.dev.vars.example`).
+
+The seed prints a random password for `csr@example.com` the first time it
+creates it. To choose one (or reset it), run the seed with `SEED_CSR_PASSWORD`
+set. Re-seeding never deletes CSR accounts.
 
 ```bash
 npm test        # all workspaces
@@ -103,10 +107,33 @@ It uses its own dev server on port 5199 (override with `E2E_PORT`), so it won't
 collide with `npm run dev`. It is not part of `npm test`; CI runs it as a
 separate `e2e` job.
 
+## Authentication
+
+CSRs sign in with email and password. The API issues a random session token in
+an `HttpOnly`, `SameSite=Strict` cookie (`Secure` in production) and stores only
+its SHA-256 hash, so a database leak doesn't leak live sessions. Sessions last
+8 hours, and signing out (or disabling the CSR) ends them server-side
+immediately. Passwords are hashed with scrypt.
+
+Every route requires a session except `POST /auth/login`, `POST /auth/logout`
+and the health check. `SameSite=Strict` is the CSRF defense, which works because
+the portal and API share one origin through the gateway. Failed logins are
+limited to 5 per email per 15 minutes. That state is in memory, so it assumes a
+single API instance and resets on restart.
+
+Not built: roles (every active CSR can do everything), a UI for managing CSR
+accounts, and an audit trail of which CSR changed what.
+
 ## API
+
+Everything below except `/auth/login`, `/auth/logout` and `GET /` needs a
+signed-in CSR; otherwise it returns `401`.
 
 | Method | Route | |
 |---|---|---|
+| `POST` | `/auth/login` | `{ email, password }`; sets the session cookie |
+| `POST` | `/auth/logout` | ends the session and clears the cookie |
+| `GET` | `/auth/me` | the signed-in CSR |
 | `GET` | `/users` | paginated; `?search=` matches name, email, phone, plate |
 | `GET` | `/users/:id` | with vehicles, subscriptions, and purchases |
 | `PATCH` | `/users/:id` | update account info |

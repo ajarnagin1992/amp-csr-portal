@@ -16,6 +16,14 @@ erDiagram
         datetime created_at
     }
 
+    CSR_SESSIONS {
+        int      id                PK
+        int      csr_user_id       FK
+        string   token_hash        UK
+        datetime expires_at
+        datetime created_at
+    }
+
     MOBILE_USERS {
         int      id                PK
         string   first_name
@@ -70,6 +78,7 @@ erDiagram
         datetime created_at
     }
 
+    CSR_USERS     ||--o{ CSR_SESSIONS  : "signs in with"
     MOBILE_USERS  ||--o{ VEHICLES      : "owns"
     MOBILE_USERS  ||--o{ PURCHASES     : "makes"
     VEHICLES      ||--o{ SUBSCRIPTIONS : "subscribed to"
@@ -87,7 +96,7 @@ erDiagram
 4. Amounts of money are stored in cents.
 5. Plan price lives only on `PLANS` and is not copied onto subscriptions, so a price change applies to every member. Emailing members about a change is intended but not implemented.
 6. A transfer only moves a subscription between vehicles of the same customer. It marks the old subscription `TRANSFERRED` and creates a new one on the target vehicle.
-7. `CSR_USERS` exists for portal login and for recording who did what. Both are out of scope, so the table is currently unused.
+7. `CSR_USERS` supports portal login and, eventually, recording who did what. Login is implemented: a CSR signs in with email and password and gets a session (`CSR_SESSIONS`) held in an HttpOnly cookie. Sessions store only a SHA-256 hash of the cookie token and expire 8 hours after sign-in. There is no CSR management UI or roles, so every active CSR can do everything, and accounts are created by the seed script. Recording which CSR made a change is out of scope, so nothing links a change to a CSR yet.
 
 ### Rules not enforced by diagram
 - Vehicles being one to many is correct for the model, as many subscriptions may associate to a vehicle over time, but each vehicle may only have at most 1 ACTIVE or OVERDUE subscription. This is enforced in the service layer (after vehicles have been pulled). This is enforced via a partial unique index over subscriptions table, which will prevent racing create/transfer requests.
@@ -123,6 +132,14 @@ erDiagram
         string   email             UK
         string   password_hash
         enum     status               "ACTIVE | DISABLED"
+        datetime created_at
+    }
+
+    CSR_SESSIONS {
+        int      id                PK
+        int      csr_user_id       FK
+        string   token_hash        UK
+        datetime expires_at
         datetime created_at
     }
 
@@ -210,6 +227,7 @@ erDiagram
     MOBILE_USERS  ||--o{ PURCHASES             : "makes"
     MOBILE_USERS  ||--o{ EVENTS                : "history of"
     CSR_USERS     |o--o{ EVENTS                : "performed"
+    CSR_USERS     ||--o{ CSR_SESSIONS          : "signs in with"
 ```
 
 ### What changes

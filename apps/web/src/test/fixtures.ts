@@ -1,4 +1,5 @@
 import type {
+  CsrUserDto,
   ListUsersResponseDto,
   MobileUserDto,
   PlanDto,
@@ -73,4 +74,10 @@ export const validUserDetail: UserDetailDto = {
   ...validUser,
   vehicles: [validVehicle],
   purchases: [validPurchase],
+};
+
+export const validCsr: CsrUserDto = {
+  id: 1,
+  username: "csr",
+  email: "csr@example.com",
 };
