@@ -75,6 +75,23 @@ npm run lint
 npm run typecheck
 ```
 
+### End-to-end tests
+
+Playwright drives the real portal in Chromium. `/api/*` is served by a stateful
+in-memory fake ([`apps/web/e2e/support/fakeApi.ts`](apps/web/e2e/support/fakeApi.ts))
+that enforces the API's business rules, so the suite needs no database and no
+running API, and every test starts from the same seed data.
+
+```bash
+npx playwright install chromium          # once, from apps/web
+npm run test:e2e -w @amp-csr/web         # headless
+npm run test:e2e:ui -w @amp-csr/web      # Playwright's interactive UI
+```
+
+It uses its own dev server on port 5199 (override with `E2E_PORT`), so it won't
+collide with `npm run dev`. It is not part of `npm test`; CI runs it as a
+separate `e2e` job.
+
 ## API
 
 | Method | Route | |
