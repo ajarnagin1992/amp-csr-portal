@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Alert, Badge, Button, Group, Loader, Modal, NumberInput, Table, Text, Textarea, TextInput } from '@mantine/core';
+import { Alert, Badge, Button, Group, Modal, NumberInput, Table, Text, Textarea, TextInput } from '@mantine/core';
 import type { PlanDto } from '@amp-csr/shared';
+import { PageLoader } from '../../components/PageLoader.js';
 import { usePlans } from './usePlans.js';
 import { useCreatePlan } from './useCreatePlan.js';
 import { useUpdatePlan } from './useUpdatePlan.js';
@@ -33,7 +34,7 @@ function PlanFormModal({ plan, onClose }: { plan?: PlanDto; onClose: () => void 
   }
 
   return (
-    <Modal opened onClose={onClose} title={plan ? `Edit plan — ${plan.name}` : 'New plan'}>
+    <Modal centered opened onClose={onClose} title={plan ? `Edit plan — ${plan.name}` : 'New plan'}>
       <div className="flex flex-col gap-3">
         <TextInput label="Name" value={name} onChange={(e) => setName(e.currentTarget.value)} />
         <Textarea
@@ -73,7 +74,7 @@ function PlanStatusModal({ plan, onClose }: { plan: PlanDto; onClose: () => void
   const disabling = plan.status === 'ACTIVE';
 
   return (
-    <Modal opened onClose={onClose} title={disabling ? 'Disable plan' : 'Enable plan'}>
+    <Modal centered opened onClose={onClose} title={disabling ? 'Disable plan' : 'Enable plan'}>
       <Text>
         {disabling
           ? `Disable ${plan.name}? Members already on it keep it, but it can no longer be added to new subscriptions.`
@@ -116,7 +117,7 @@ export function PlansEditor() {
       </Group>
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         {isPending ? (
-          <Loader aria-label="Loading" />
+          <PageLoader />
         ) : isError ? (
           <Alert color="red">Failed to load plans</Alert>
         ) : plans.length === 0 ? (

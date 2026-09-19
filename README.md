@@ -12,8 +12,18 @@ moving a subscription to a new vehicle, and accounts blocked by a failed payment
 | **API** | https://amp-csr-api.onrender.com |
 | **Repo** | https://github.com/ajarnagin1992/amp-csr-portal |
 
-> **Note:** the API runs on a free tier that sleeps after inactivity. The first
-> request may take up to a minute to wake it; subsequent requests are fast.
+### Note for the assessor: Render cold starts
+
+The API is hosted on Render's free tier, which spins the service down after about
+15 minutes without traffic. **The first request after an idle period can take up
+to a minute** while the API boots. Until it does, the portal will show a loading
+spinner (or an error, if the request times out), and reloading once the API is up
+resolves it. Requests after that are fast.
+
+This is a limitation of the free hosting tier I chose for this assessment, not of
+the application: a paid Render instance (or any always-on host) doesn't sleep and
+wouldn't have this delay. If the portal looks stuck on first load, please give it a
+minute and refresh.
 
 ## What a CSR can do
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Alert, Button, Group, Loader, Modal, Select, Table, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Button, Group, Modal, Select, Table, Text, TextInput, Title } from '@mantine/core';
+import { PageLoader } from '../../components/PageLoader.js';
 import { useUser } from './useUser.js';
 import { useUpdateUser } from './useUpdateUser.js';
 import { useDeactivateUser } from './useDeactivateUser.js';
@@ -64,7 +65,12 @@ function SubscriptionActions({
         >
           Add Subscription
         </Button>
-        <Modal opened={isAdding} onClose={() => setIsAdding(false)} title={`Add subscription — ${vehicle.licensePlate}`}>
+        <Modal
+          centered
+          opened={isAdding}
+          onClose={() => setIsAdding(false)}
+          title={`Add subscription — ${vehicle.licensePlate}`}
+        >
           <Select
             label="Plan"
             placeholder="Select a plan"
@@ -126,7 +132,7 @@ function SubscriptionActions({
         Transfer
       </Button>
 
-      <Modal opened={isCancelling} onClose={() => setIsCancelling(false)} title="End subscription">
+      <Modal centered opened={isCancelling} onClose={() => setIsCancelling(false)} title="End subscription">
         <Text>Are you sure you want to cancel the subscription on {vehicle.licensePlate}?</Text>
         {cancelSubscription.isError && (
           <Alert color="red" mt="sm">
@@ -147,6 +153,7 @@ function SubscriptionActions({
       </Modal>
 
       <Modal
+        centered
         opened={isTransferring}
         onClose={() => setIsTransferring(false)}
         title={`Transfer subscription — ${vehicle.licensePlate}`}
@@ -278,6 +285,7 @@ function AccountInfo({ data }: { data: MobileUserDto }) {
         </Text>
       )}
       <Modal
+        centered
         opened={isConfirmingStatus}
         onClose={() => setIsConfirmingStatus(false)}
         title={data.status === 'ACTIVE' ? 'Deactivate account' : 'Reactivate account'}
@@ -300,7 +308,7 @@ export function UserProperties() {
   const { id } = useParams();
   const { data, isPending, isError } = useUser(Number(id));
 
-  if (isPending) return <Loader aria-label="Loading" />;
+  if (isPending) return <PageLoader />;
   if (isError) return <Alert color="red">Failed to load user</Alert>;
 
   return (

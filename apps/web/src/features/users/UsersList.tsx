@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Alert, Loader, Pagination, Table, Text, TextInput } from '@mantine/core';
+import { Alert, Pagination, Table, Text, TextInput } from '@mantine/core';
 import { DEFAULT_PAGE_SIZE } from '@amp-csr/shared';
+import { PageLoader } from '../../components/PageLoader.js';
 import { useUsers } from './useUsers.js';
 
 export function UsersList() {
@@ -23,7 +24,7 @@ export function UsersList() {
       />
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         {isPending ? (
-          <Loader aria-label="Loading" />
+          <PageLoader />
         ) : isError ? (
           <Alert color="red">Failed to load users</Alert>
         ) : data.data.length === 0 ? (
