@@ -121,7 +121,7 @@ describe('SubscriptionsService', () => {
       expect(prisma.plan.findUnique).toHaveBeenCalledWith({ where: { id: 5 } });
     });
 
-    it('checks the current subscription of the vehicle before creating', async () => {
+    it('checks for a live (ACTIVE or OVERDUE) subscription on the vehicle before creating', async () => {
       vi.mocked(prisma.plan.findUnique).mockResolvedValue(planRow);
       vi.mocked(prisma.subscription.findFirst).mockResolvedValue(undefined);
       vi.mocked(prisma.subscription.create).mockResolvedValue(subscriptionRow);
@@ -129,8 +129,8 @@ describe('SubscriptionsService', () => {
       await subscriptionsService.create(10, planRow.id);
 
       expect(prisma.subscription.findFirst).toHaveBeenCalledWith({
-        where: { vehicleId: 10 },
-        orderBy: { createdAt: 'desc' },
+        where: { vehicleId: 10, status: { in: ['ACTIVE', 'OVERDUE'] } },
+        select: { id: true },
       });
     });
 
@@ -149,6 +149,19 @@ describe('SubscriptionsService', () => {
     it('throws ConflictException when the vehicle already has an active subscription', async () => {
       vi.mocked(prisma.plan.findUnique).mockResolvedValue(planRow);
       vi.mocked(prisma.subscription.findFirst).mockResolvedValue({ ...subscriptionRow, id: 2, status: 'ACTIVE' });
+
+      await expect(subscriptionsService.create(10, planRow.id)).rejects.toThrow(ConflictException);
+    });
+
+    it('throws ConflictException when a concurrent request wins the race for the vehicle', async () => {
+      vi.mocked(prisma.plan.findUnique).mockResolvedValue(planRow);
+      vi.mocked(prisma.subscription.findFirst).mockResolvedValue(undefined);
+      vi.mocked(prisma.subscription.create).mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: '7.10.0',
+        }),
+      );
 
       await expect(subscriptionsService.create(10, planRow.id)).rejects.toThrow(ConflictException);
     });
@@ -307,6 +320,24 @@ describe('SubscriptionsService', () => {
       vi.mocked(prisma.subscription.findUnique).mockResolvedValue(subscription);
       vi.mocked(prisma.vehicle.findUnique).mockResolvedValue(targetVehicle);
       vi.mocked(prisma.subscription.findFirst).mockResolvedValue({ ...subscriptionRow, id: 3, status: 'ACTIVE' });
+
+      await expect(subscriptionsService.transfer(1, 20)).rejects.toThrow(ConflictException);
+      expect(prisma.subscription.findFirst).toHaveBeenCalledWith({
+        where: { vehicleId: 20, status: { in: ['ACTIVE', 'OVERDUE'] } },
+        select: { id: true },
+      });
+    });
+
+    it('throws ConflictException when a concurrent request wins the race for the target vehicle', async () => {
+      vi.mocked(prisma.subscription.findUnique).mockResolvedValue(subscription);
+      vi.mocked(prisma.vehicle.findUnique).mockResolvedValue(targetVehicle);
+      vi.mocked(prisma.subscription.findFirst).mockResolvedValue(undefined);
+      vi.mocked(prisma.$transaction).mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: '7.10.0',
+        }),
+      );
 
       await expect(subscriptionsService.transfer(1, 20)).rejects.toThrow(ConflictException);
     });

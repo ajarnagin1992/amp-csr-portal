@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { PRISMA_ERROR_CODE } from '../common/constants/prisma-error-codes.js';
-import { TERMINAL_STATUSES_SUBSCRIPTION } from '../common/constants/terminal-statuses.js';
+import { LIVE_STATUSES_SUBSCRIPTION, TERMINAL_STATUSES_SUBSCRIPTION } from '../common/constants/terminal-statuses.js';
 import type { SubscriptionDto } from '@amp-csr/shared';
 import { toSubscriptionDto } from '../common/mappers/subscription.mapper.js';
 
@@ -32,11 +32,7 @@ export class SubscriptionsService {
       );
     }
 
-    const current = await this.prisma.subscription.findFirst({
-      where: { vehicleId },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (current && !TERMINAL_STATUSES_SUBSCRIPTION.has(current.status)) {
+    if (await this.hasLiveSubscription(vehicleId)) {
       throw new ConflictException(`Vehicle ${vehicleId} already has an active subscription`);
     }
 
@@ -56,6 +52,12 @@ export class SubscriptionsService {
         error.code === PRISMA_ERROR_CODE.FOREIGN_KEY_VIOLATION
       ) {
         throw new NotFoundException(`Vehicle ${vehicleId} not found`);
+      }
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === PRISMA_ERROR_CODE.UNIQUE_CONSTRAINT_VIOLATION
+      ) {
+        throw new ConflictException(`Vehicle ${vehicleId} already has an active subscription`);
       }
       throw error;
     }
@@ -114,28 +116,43 @@ export class SubscriptionsService {
       throw new BadRequestException('Cannot transfer a subscription to a vehicle owned by a different customer');
     }
 
-    const targetCurrentSubscription = await this.prisma.subscription.findFirst({
-      where: { vehicleId: newVehicleId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (targetCurrentSubscription && !TERMINAL_STATUSES_SUBSCRIPTION.has(targetCurrentSubscription.status)) {
+    if (await this.hasLiveSubscription(newVehicleId)) {
       throw new ConflictException(`Vehicle ${newVehicleId} already has an active subscription`);
     }
 
-    const [, newSubscription] = await this.prisma.$transaction([
-      this.prisma.subscription.update({ where: { id }, data: { status: 'TRANSFERRED' } }),
-      this.prisma.subscription.create({
-        data: {
-          vehicleId: newVehicleId,
-          planId: subscription.planId,
-          status: 'ACTIVE',
-          nextBillingDate: subscription.nextBillingDate,
-        },
-        include: { plan: true },
-      }),
-    ]);
+    try {
+      const [, newSubscription] = await this.prisma.$transaction([
+        this.prisma.subscription.update({ where: { id }, data: { status: 'TRANSFERRED' } }),
+        this.prisma.subscription.create({
+          data: {
+            vehicleId: newVehicleId,
+            planId: subscription.planId,
+            status: 'ACTIVE',
+            nextBillingDate: subscription.nextBillingDate,
+          },
+          include: { plan: true },
+        }),
+      ]);
 
-    return toSubscriptionDto(newSubscription);
+      return toSubscriptionDto(newSubscription);
+    } catch (error) {
+      // Lost a race with a concurrent create/transfer onto the same vehicle; the transaction rolled back.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === PRISMA_ERROR_CODE.UNIQUE_CONSTRAINT_VIOLATION
+      ) {
+        throw new ConflictException(`Vehicle ${newVehicleId} already has an active subscription`);
+      }
+      throw error;
+    }
+  }
+
+  // Served by the partial unique index on subscriptions(vehicle_id) WHERE status IN (ACTIVE, OVERDUE).
+  private async hasLiveSubscription(vehicleId: number): Promise<boolean> {
+    const live = await this.prisma.subscription.findFirst({
+      where: { vehicleId, status: { in: LIVE_STATUSES_SUBSCRIPTION } },
+      select: { id: true },
+    });
+    return Boolean(live);
   }
 }
