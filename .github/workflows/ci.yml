@@ -25,3 +25,29 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build
+
+  # Drives the real portal in Chromium against an in-browser fake of the API, so it needs no database.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+
+      # `pretest:e2e` builds @amp-csr/shared first.
+      - run: npm run test:e2e -w @amp-csr/web
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
